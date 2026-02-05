@@ -1,8 +1,8 @@
 export const awsConfig = {
   Auth: {
     Cognito: {
-      userPoolId: 'eu-west-1_Y2W4Nq5cV',
-      userPoolClientId: '631upjij4alek3b8gh76474t9a',
+      userPoolId: 'eu-west-1_XZAczHudo',
+      userPoolClientId: '7u27dv5quabpnlsqpprjknqr8v',
       loginWith: {
         email: true,
       },
@@ -11,7 +11,7 @@ export const awsConfig = {
   API: {
     REST: {
       InterviewQuestionsAPI: {
-        endpoint: 'https://yuc2w2ouqb.execute-api.eu-west-1.amazonaws.com/prod/',
+        endpoint: 'https://g0g7y3878k.execute-api.eu-west-1.amazonaws.com/prod/',
         region: 'eu-west-1',
       },
     },
