@@ -11,7 +11,7 @@ export const awsConfig = {
   API: {
     REST: {
       InterviewQuestionsAPI: {
-        endpoint: 'https://g0g7y3878k.execute-api.eu-west-1.amazonaws.com/prod/',
+        endpoint: 'https://i7yk0rm53j.execute-api.eu-west-1.amazonaws.com/prod/',
         region: 'eu-west-1',
       },
     },
