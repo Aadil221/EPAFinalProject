@@ -50,16 +50,20 @@ export default function Questions() {
     return ['All', ...Array.from(cats)];
   }, [questions]);
 
-  const difficulties = ['All', 'Easy', 'Medium', 'Hard'];
+  const difficulties = useMemo(() => {
+    const diffs = new Set(questions.map(q => q.difficulty.toLowerCase()));
+    return ['All', ...Array.from(diffs)];
+  }, [questions]);
 
   const filteredQuestions = useMemo(() => {
     return questions.filter(question => {
-      const matchesSearch = question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           question.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           question.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesSearch = question.question_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           question.difficulty.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           question.category.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCategory = selectedCategory === 'All' || question.category === selectedCategory;
-      const matchesDifficulty = selectedDifficulty === 'All' || question.difficulty === selectedDifficulty;
+      const matchesDifficulty = selectedDifficulty === 'All' ||
+                                question.difficulty.toLowerCase() === selectedDifficulty.toLowerCase();
 
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
@@ -67,6 +71,14 @@ export default function Questions() {
 
   const getDifficultyClass = (difficulty: string) => {
     return `difficulty difficulty-${difficulty.toLowerCase()}`;
+  };
+
+  const capitalizeCategory = (category: string) => {
+    return category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+  };
+
+  const capitalizeDifficulty = (difficulty: string) => {
+    return difficulty.charAt(0).toUpperCase() + difficulty.slice(1).toLowerCase();
   };
 
   const handlePracticeAnswer = (question: Question) => {
@@ -91,9 +103,9 @@ export default function Questions() {
       const token = await getAuthToken();
       const result = await evaluateAnswer(
         {
-          question: selectedQuestion.description,
+          question: selectedQuestion.question_text,
           answer: userAnswer,
-          competency_type: selectedQuestion.category,
+          competency_type: selectedQuestion.competency,
         },
         token
       );
@@ -158,7 +170,7 @@ export default function Questions() {
                 disabled={loading}
               >
                 {difficulties.map(diff => (
-                  <option key={diff} value={diff}>{diff}</option>
+                  <option key={diff} value={diff}>{capitalizeDifficulty(diff)}</option>
                 ))}
               </select>
             </div>
@@ -199,17 +211,14 @@ export default function Questions() {
                   filteredQuestions.map(question => (
                     <div key={question.id} className="question-card">
                       <div className="question-header">
-                        <h3>{question.title}</h3>
+                        <h3>{question.question_text}</h3>
                         <span className={getDifficultyClass(question.difficulty)}>
-                          {question.difficulty}
+                          {capitalizeDifficulty(question.difficulty)}
                         </span>
                       </div>
-                      <p className="question-description">{question.description}</p>
                       <div className="question-footer">
                         <div className="question-tags">
-                          {question.tags.map(tag => (
-                            <span key={tag} className="tag">{tag}</span>
-                          ))}
+                          <span className="tag">{capitalizeCategory(question.category)}</span>
                         </div>
                         <button
                           className="btn btn-small"
@@ -242,14 +251,19 @@ export default function Questions() {
 
             <div className="modal-body">
               <div className="question-display">
-                <h3>{selectedQuestion.title}</h3>
-                <p>{selectedQuestion.description}</p>
+                <h3>{selectedQuestion.question_text}</h3>
                 <div className="question-meta">
                   <span className={getDifficultyClass(selectedQuestion.difficulty)}>
-                    {selectedQuestion.difficulty}
+                    {capitalizeDifficulty(selectedQuestion.difficulty)}
                   </span>
-                  <span className="category-badge">{selectedQuestion.category}</span>
+                  <span className="category-badge">{capitalizeCategory(selectedQuestion.category)}</span>
                 </div>
+                {selectedQuestion.reference_answer && (
+                  <details className="reference-answer">
+                    <summary>📚 Reference Answer (click to reveal)</summary>
+                    <p>{selectedQuestion.reference_answer}</p>
+                  </details>
+                )}
               </div>
 
               <div className="answer-section">
