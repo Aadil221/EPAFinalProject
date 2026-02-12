@@ -36,7 +36,13 @@ export default function Login() {
       navigate('/questions');
     } catch (err: unknown) {
       console.error('Login error:', err);
-      setError('Login failed. Please check your username and password, or verify your account if you haven\'t already.');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+
+      if (errorMessage === 'NEW_PASSWORD_REQUIRED') {
+        navigate('/change-password', { state: { email } });
+      } else {
+        setError('Login failed. Please check your username and password.');
+      }
     } finally {
       setLoading(false);
     }
@@ -86,11 +92,6 @@ export default function Login() {
 
         <p className="login-footer">
           Don't have an account? <Link to="/signup" className="link">Sign up</Link>
-        </p>
-
-        <p className="login-footer" style={{ marginTop: '0.5rem' }}>
-          Need to verify your account?{' '}
-          <Link to="/verify-email" className="link">Verify email</Link>
         </p>
       </div>
     </div>
