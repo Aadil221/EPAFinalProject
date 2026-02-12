@@ -4,7 +4,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Questions from './pages/Questions';
 import Signup from './pages/Signup';
-import VerifyEmail from './pages/VerifyEmail';
+import ChangePassword from './pages/ChangePassword';
 import './App.css';
 
 function NavBar() {
@@ -60,7 +60,7 @@ function AppContent() {
             <Route path="/login" element={<Login />} />
             <Route path="/questions" element={<Questions />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/change-password" element={<ChangePassword />} />
           </Routes>
         </main>
 
