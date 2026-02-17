@@ -210,6 +210,7 @@ export class ServiceStack extends cdk.Stack {
       handler: 'evaluate_answer.handler',
       code: lambda.Code.fromAsset("../backend/src"),
       timeout: cdk.Duration.seconds(30),
+      logRetention: logs.RetentionDays.ONE_MONTH,
     });
 
     // Grant Bedrock model invocation permission
@@ -224,6 +225,7 @@ export class ServiceStack extends cdk.Stack {
       handler: 'admin_create_user.handler',
       code: lambda.Code.fromAsset("../backend/src"),
       timeout: cdk.Duration.seconds(30),
+      logRetention: logs.RetentionDays.ONE_MONTH,
       environment: {
         USER_POOL_ID: userPool.userPoolId,
       },
