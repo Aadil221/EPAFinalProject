@@ -14,6 +14,8 @@ import * as cloudwatch_actions from 'aws-cdk-lib/aws-cloudwatch-actions';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cloudtrail from 'aws-cdk-lib/aws-cloudtrail';
 import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
 
 export interface ServiceStackProps extends cdk.StackProps {
   enableMonitoring?: boolean;
@@ -82,6 +84,33 @@ export class ServiceStack extends cdk.Stack {
       autoDeleteObjects: false,
     });
 
+    // ============================================
+    // Route53 Hosted Zone for SuperNova Domain
+    // ============================================
+    const hostedZone = new route53.PublicHostedZone(this, 'SuperNovaHostedZone', {
+      zoneName: 'aadilnn.people.aws.dev',
+      comment: 'Hosted zone for EPA Interview Questions application - SuperNova delegation',
+    });
+
+    // ============================================
+    // ACM Certificate for HTTPS
+    // ============================================
+    const certificate = new acm.Certificate(this, 'SslCertificate', {
+      domainName: 'aadilnn.people.aws.dev',
+      subjectAlternativeNames: ['*.aadilnn.people.aws.dev'], // Wildcard for subdomains
+      validation: acm.CertificateValidation.fromDns(hostedZone),
+    });
+
+    new cdk.CfnOutput(this, 'CertificateArn', {
+      value: certificate.certificateArn,
+      description: 'ACM Certificate ARN for HTTPS',
+    });
+
+    new cdk.CfnOutput(this, 'CustomDomainUrl', {
+      value: `https://aadilnn.people.aws.dev`,
+      description: 'Custom domain URL for frontend',
+    });
+
     const originAccessIdentity = new cloudfront.OriginAccessIdentity(this, 'OAI', {
       comment: 'OAI for Interview Question Bank Frontend',
     });
@@ -89,6 +118,8 @@ export class ServiceStack extends cdk.Stack {
     frontendS3.grantRead(originAccessIdentity);
 
     const distribution = new cloudfront.Distribution(this, 'FrontendDistribution', {
+      domainNames: ['aadilnn.people.aws.dev'],
+      certificate: certificate,
       defaultBehavior: {
         origin: new origins.S3Origin(frontendS3, {
           originAccessIdentity: originAccessIdentity,
@@ -131,13 +162,7 @@ export class ServiceStack extends cdk.Stack {
     });
 
     // ============================================
-    // Route53 Hosted Zone for SuperNova Domain
-    // ============================================
-    const hostedZone = new route53.PublicHostedZone(this, 'SuperNovaHostedZone', {
-      zoneName: 'aadilnn.people.aws.dev',
-      comment: 'Hosted zone for EPA Interview Questions application - SuperNova delegation',
-    });
-
+    // Route53 DNS Records
     new cdk.CfnOutput(this, 'HostedZoneId', {
       value: hostedZone.hostedZoneId,
       description: 'Route53 Hosted Zone ID for SuperNova',
@@ -154,6 +179,14 @@ export class ServiceStack extends cdk.Stack {
       value: hostedZone.zoneName,
       description: 'Custom domain name',
     });
+
+    // A record (alias) for apex domain pointing to CloudFront
+    new route53.ARecord(this, 'ApexDomainRecord', {
+      zone: hostedZone,
+      recordName: 'aadilnn.people.aws.dev',
+      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
+    });
+    // ============================================
 
     // ============================================
     // Nova IAM Role (Required by SuperNova)
