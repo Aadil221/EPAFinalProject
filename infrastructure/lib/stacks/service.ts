@@ -94,11 +94,13 @@ export class ServiceStack extends cdk.Stack {
 
     // ============================================
     // ACM Certificate for HTTPS
+    // CloudFront requires certificates in us-east-1 (global service)
     // ============================================
-    const certificate = new acm.Certificate(this, 'SslCertificate', {
+    const certificate = new acm.DnsValidatedCertificate(this, 'SslCertificate', {
       domainName: 'aadilnn.people.aws.dev',
       subjectAlternativeNames: ['*.aadilnn.people.aws.dev'], // Wildcard for subdomains
-      validation: acm.CertificateValidation.fromDns(hostedZone),
+      hostedZone: hostedZone,
+      region: 'us-east-1', // Required for CloudFront
     });
 
     new cdk.CfnOutput(this, 'CertificateArn', {
