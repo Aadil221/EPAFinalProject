@@ -29,6 +29,7 @@ export class ServiceStack extends cdk.Stack {
     
     const enableMonitoring = props?.enableMonitoring ?? true;
     const environment = props?.environment ?? 'prod';
+    const isProduction = environment === 'prod';
 
     const userPool = new cognito.UserPool(this, 'InterviewQuestionBankUserPool', {
       userPoolName: 'interview-question-bank-users',
@@ -85,22 +86,40 @@ export class ServiceStack extends cdk.Stack {
     });
 
     // ============================================
-    // Route53 Hosted Zone for SuperNova Domain
+    // DNS and Certificate Setup
+    // PROD: Use Supernova-created hosted zone (lookup)
+    // ALPHA: Create subdomain hosted zone
     // ============================================
-    const hostedZone = new route53.PublicHostedZone(this, 'SuperNovaHostedZone', {
-      zoneName: 'aadilnn.people.aws.dev',
-      comment: 'Hosted zone for EPA Interview Questions application - SuperNova delegation',
-    });
+    const rootDomain = 'aadilnn.people.aws.dev';
+    let hostedZone: route53.IHostedZone;
+    let websiteDomain: string;
 
-    // ============================================
-    // ACM Certificate for HTTPS
-    // CloudFront requires certificates in us-east-1 (global service)
-    // ============================================
+    if (isProduction) {
+      // Production: Use root domain with Supernova-created zone
+      websiteDomain = rootDomain;
+      hostedZone = route53.HostedZone.fromLookup(this, 'RootHostedZone', {
+        domainName: rootDomain,
+      });
+    } else {
+      // Alpha: Create subdomain hosted zone
+      websiteDomain = `${environment}.${rootDomain}`;
+      hostedZone = new route53.PublicHostedZone(this, 'SubdomainHostedZone', {
+        zoneName: websiteDomain,
+        comment: `Subdomain zone for ${environment} environment`,
+      });
+      hostedZone.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
+
+      new cdk.CfnOutput(this, 'SubdomainNameServers', {
+        value: cdk.Fn.join(', ', hostedZone.hostedZoneNameServers || []),
+        description: `Add these NS records to ${rootDomain} in prod for subdomain delegation`,
+      });
+    }
+
+    // ACM Certificate for HTTPS (CloudFront requires us-east-1)
     const certificate = new acm.DnsValidatedCertificate(this, 'SslCertificate', {
-      domainName: 'aadilnn.people.aws.dev',
-      subjectAlternativeNames: ['*.aadilnn.people.aws.dev'], // Wildcard for subdomains
+      domainName: websiteDomain,
       hostedZone: hostedZone,
-      region: 'us-east-1', // Required for CloudFront
+      region: 'us-east-1',
     });
 
     new cdk.CfnOutput(this, 'CertificateArn', {
@@ -109,7 +128,7 @@ export class ServiceStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'CustomDomainUrl', {
-      value: `https://aadilnn.people.aws.dev`,
+      value: `https://${websiteDomain}`,
       description: 'Custom domain URL for frontend',
     });
 
@@ -120,7 +139,7 @@ export class ServiceStack extends cdk.Stack {
     frontendS3.grantRead(originAccessIdentity);
 
     const distribution = new cloudfront.Distribution(this, 'FrontendDistribution', {
-      domainNames: ['aadilnn.people.aws.dev'],
+      domainNames: [websiteDomain],
       certificate: certificate,
       defaultBehavior: {
         origin: new origins.S3Origin(frontendS3, {
@@ -185,7 +204,7 @@ export class ServiceStack extends cdk.Stack {
     // A record (alias) for apex domain pointing to CloudFront
     new route53.ARecord(this, 'ApexDomainRecord', {
       zone: hostedZone,
-      recordName: 'aadilnn.people.aws.dev',
+      recordName: websiteDomain,
       target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
     });
     // ============================================

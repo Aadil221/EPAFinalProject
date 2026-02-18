@@ -4,7 +4,11 @@ import { ServiceStack } from '../lib/stacks/service';
 
 function synthTemplate() {
   const app = new cdk.App();
-  const stack = new ServiceStack(app, 'TestServiceStack');
+  // Use Alpha environment in tests to avoid HostedZone.fromLookup() which requires AWS account
+  const stack = new ServiceStack(app, 'TestServiceStack', {
+    environment: 'alpha',
+    enableMonitoring: true,
+  });
   return Template.fromStack(stack);
 }
 
