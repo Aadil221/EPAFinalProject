@@ -2,13 +2,26 @@ import * as cdk from 'aws-cdk-lib';
 import { Template, Match } from 'aws-cdk-lib/assertions';
 import { ServiceStack } from '../lib/stacks/service';
 
-function synthTemplate() {
-  const app = new cdk.App();
-  // Use Alpha environment in tests to avoid HostedZone.fromLookup() which requires AWS account
+function synthTemplate(environment: 'alpha' | 'prod' = 'alpha') {
+  const app = new cdk.App({
+    context: {
+      // Mock hosted zone lookup to avoid AWS API calls during testing
+      'hosted-zone:account=123456789012:domainName=aadilnn.people.aws.dev:region=eu-west-1': {
+        Id: '/hostedzone/ZXXXXXXXXXXXXX',
+        Name: 'aadilnn.people.aws.dev',
+      },
+    },
+  });
+
   const stack = new ServiceStack(app, 'TestServiceStack', {
-    environment: 'alpha',
+    env: {
+      account: '123456789012',
+      region: 'eu-west-1'
+    },
+    environment: environment,
     enableMonitoring: true,
   });
+
   return Template.fromStack(stack);
 }
 
