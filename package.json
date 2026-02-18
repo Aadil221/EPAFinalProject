@@ -11,6 +11,9 @@
     "test": "echo \"no test yet\""
   },
   "overrides": {
-    "fast-xml-parser": "^5.3.4"
+    "fast-xml-parser": "5.3.6",
+    "@aws-sdk/xml-builder": {
+      "fast-xml-parser": "5.3.6"
+    }
   }
 }
