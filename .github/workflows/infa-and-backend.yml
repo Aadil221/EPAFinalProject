@@ -88,6 +88,9 @@ jobs:
         run: npx tsc --noEmit
 
       - name: CDK synth
+        env:
+          ENVIRONMENT: alpha
+          CDK_DEFAULT_REGION: eu-west-1
         run: npx cdk synth
 
   deploy-alpha:
