@@ -13,7 +13,6 @@ import * as sns from 'aws-cdk-lib/aws-sns';
 import * as cloudwatch_actions from 'aws-cdk-lib/aws-cloudwatch-actions';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cloudtrail from 'aws-cdk-lib/aws-cloudtrail';
-import * as route53 from 'aws-cdk-lib/aws-route53';
 
 export interface ServiceStackProps extends cdk.StackProps {
   enableMonitoring?: boolean;
@@ -128,49 +127,6 @@ export class ServiceStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'CloudFrontDomainName', {
       value: distribution.distributionDomainName,
       description: 'CloudFront Domain Name',
-    });
-
-    // ============================================
-    // Route53 Hosted Zone for SuperNova Domain
-    // ============================================
-    const hostedZone = new route53.PublicHostedZone(this, 'SuperNovaHostedZone', {
-      zoneName: 'aadilnn.people.aws.dev',
-      comment: 'Hosted zone for EPA Interview Questions application - SuperNova delegation',
-    });
-
-    new cdk.CfnOutput(this, 'HostedZoneId', {
-      value: hostedZone.hostedZoneId,
-      description: 'Route53 Hosted Zone ID for SuperNova',
-      exportName: `${this.stackName}-HostedZoneId`,
-    });
-
-    new cdk.CfnOutput(this, 'HostedZoneArn', {
-      value: hostedZone.hostedZoneArn,
-      description: 'Route53 Hosted Zone ARN for SuperNova delegation request',
-      exportName: `${this.stackName}-HostedZoneArn`,
-    });
-
-    new cdk.CfnOutput(this, 'HostedZoneName', {
-      value: hostedZone.zoneName,
-      description: 'Custom domain name',
-    });
-
-    // ============================================
-    // Nova IAM Role (Required by SuperNova)
-    // ============================================
-    const novaRole = new iam.Role(this, 'NovaRole', {
-      roleName: 'Nova-DO-NOT-DELETE',
-      assumedBy: new iam.ServicePrincipal('nova.aws.internal'),
-      description: 'SuperNova Route53 Access Role - Required for domain delegation',
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonRoute53FullAccess'),
-        iam.ManagedPolicy.fromAwsManagedPolicyName('SecurityAudit'),
-      ],
-    });
-
-    new cdk.CfnOutput(this, 'NovaRoleArn', {
-      value: novaRole.roleArn,
-      description: 'Nova IAM Role ARN for Palisade exception',
     });
 
     // Dynamo DB Table
