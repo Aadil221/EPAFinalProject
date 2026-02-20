@@ -49,10 +49,12 @@ jobs:
         # Scans backend + infrastructure dependencies:
         # - Backend Python (backend/requirements.txt)
         # - Infrastructure npm (package-lock.json)
+        # - Skips aws-cdk-lib bundled deps (dev-time only, contains minimatch 3.1.2)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
+          skip-dirs: 'node_modules/aws-cdk-lib'
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
