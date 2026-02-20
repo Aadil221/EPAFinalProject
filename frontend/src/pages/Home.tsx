@@ -28,10 +28,6 @@ export default function Home() {
           <span className="feature-icon">🤖</span>
           <span>AI-Powered Evaluation</span>
         </div>
-        <div className="feature">
-          <span className="feature-icon">📈</span>
-          <span>Track Your Progress</span>
-        </div>
       </div>
 
       <div className="home-actions">
