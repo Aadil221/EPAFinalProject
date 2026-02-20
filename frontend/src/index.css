@@ -4,14 +4,14 @@
   font-weight: 400;
 
   /* Modern color palette */
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --primary-light: #eef2ff;
-  --secondary: #8b5cf6;
-  --accent: #06b6d4;
+  --primary: #10b981;
+  --primary-hover: #059669;
+  --primary-light: #d1fae5;
+  --secondary: #14b8a6;
+  --accent: #0891b2;
   --success: #10b981;
   --warning: #f59e0b;
-  --danger: #ef4444;
+  --danger: #dc2626;
 
   --text-dark: #1e293b;
   --text-medium: #475569;
@@ -43,7 +43,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #059669 0%, #0891b2 100%);
   background-attachment: fixed;
   color: var(--text-dark);
 }
