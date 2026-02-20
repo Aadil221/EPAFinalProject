@@ -17,6 +17,14 @@
     ]
   },
   "context": {
+    "accounts": {
+      "prod": "315833389186",
+      "alpha": "969831126809"
+    },
+    "regions": {
+      "prod": "eu-west-1",
+      "alpha": "eu-west-1"
+    },
     "@aws-cdk/aws-signer:signingProfileNamePassedToCfn": true,
     "@aws-cdk/aws-ecs-patterns:secGroupsDisablesImplicitOpenListener": true,
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,

@@ -58,7 +58,7 @@ export default function Questions() {
   const filteredQuestions = useMemo(() => {
     return questions.filter(question => {
       const matchesSearch = question.question_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           question.difficulty.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           question.competency.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            question.category.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCategory = selectedCategory === 'All' || question.category === selectedCategory;
