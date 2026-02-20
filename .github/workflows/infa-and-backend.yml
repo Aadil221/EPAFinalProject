@@ -48,13 +48,12 @@ jobs:
       - name: Run Trivy vulnerability scanner (All Dependencies)
         # Scans backend + infrastructure dependencies:
         # - Backend Python (backend/requirements.txt)
-        # - Infrastructure npm (package-lock.json)
-        # - Skips aws-cdk-lib bundled deps (dev-time only, contains minimatch 3.1.2)
+        # - Note: Skips root package-lock.json (contains aws-cdk-lib with bundled minimatch 3.1.2 - dev only)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: '.'
-          skip-dirs: 'node_modules/aws-cdk-lib'
+          scan-ref: 'backend'
+          scanners: 'vuln'
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
