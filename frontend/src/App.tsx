@@ -22,7 +22,7 @@ function NavBar() {
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/" className="navbar-brand">
-          Interview Question Bank
+          SkillScout
         </Link>
         <div className="navbar-links">
           <Link to="/questions" className="nav-link">
@@ -65,7 +65,7 @@ function AppContent() {
         </main>
 
         <footer className="footer">
-          <p>&copy; 2024 Interview Question Bank. Built with React + TypeScript + Vite</p>
+          <p>&copy; 2026 SkillScout. Master your interviews with AI-powered practice.</p>
         </footer>
       </div>
     </BrowserRouter>
