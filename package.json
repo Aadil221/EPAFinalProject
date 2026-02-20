@@ -11,6 +11,7 @@
     "test": "echo \"no test yet\""
   },
   "overrides": {
-    "fast-xml-parser": "^5.3.4"
+    "fast-xml-parser": "^5.3.4",
+    "minimatch": "^10.2.1"
   }
 }
