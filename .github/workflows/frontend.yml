@@ -42,9 +42,8 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: 'frontend'
           scanners: 'vuln'
-          skip-dirs: 'backend,infrastructure'
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
