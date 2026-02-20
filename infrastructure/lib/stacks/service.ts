@@ -129,7 +129,7 @@ export class ServiceStack extends cdk.Stack {
       description: 'CloudFront Domain Name',
     });
 
-    // Dynamo DB Table
+    // DynamoDB Table
     const table = new dynamodb.Table(this, 'InterviewQuestions', {
       partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -166,7 +166,6 @@ export class ServiceStack extends cdk.Stack {
       handler: 'evaluate_answer.handler',
       code: lambda.Code.fromAsset("../backend/src"),
       timeout: cdk.Duration.seconds(30),
-      logRetention: logs.RetentionDays.ONE_MONTH,
     });
 
     // Grant Bedrock model invocation permission
@@ -181,7 +180,6 @@ export class ServiceStack extends cdk.Stack {
       handler: 'admin_create_user.handler',
       code: lambda.Code.fromAsset("../backend/src"),
       timeout: cdk.Duration.seconds(30),
-      logRetention: logs.RetentionDays.ONE_MONTH,
       environment: {
         USER_POOL_ID: userPool.userPoolId,
       },
@@ -201,7 +199,7 @@ export class ServiceStack extends cdk.Stack {
     });
 
     // Public HTTP endpoint using API Gateway
-    const api = new apigw.LambdaRestApi(this, 'InterviewQuestionsApi', {
+    const api = new apigw.LambdaRestApi(this, 'InterviewQuestionBankApi', {
       handler: questionsHandler,
       proxy: false,
       description: 'Interview Question Bank API',
@@ -218,6 +216,7 @@ export class ServiceStack extends cdk.Stack {
         allowCredentials: true,
       },
     });
+
 
     // Only create the testing endpoint in Alpha environment
     if (environment === 'alpha') {

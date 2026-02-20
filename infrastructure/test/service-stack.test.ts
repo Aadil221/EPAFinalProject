@@ -2,9 +2,17 @@ import * as cdk from 'aws-cdk-lib';
 import { Template, Match } from 'aws-cdk-lib/assertions';
 import { ServiceStack } from '../lib/stacks/service';
 
-function synthTemplate() {
+function synthTemplate(environment: 'alpha' | 'prod' = 'prod') {
   const app = new cdk.App();
-  const stack = new ServiceStack(app, 'TestServiceStack');
+
+  const stack = new ServiceStack(app, 'TestServiceStack', {
+    env: {
+      account: '123456789012',
+      region: 'eu-west-1'
+    },
+    environment: environment,
+  });
+
   return Template.fromStack(stack);
 }
 
@@ -207,5 +215,5 @@ describe('ServiceStack CDK tests', () => {
       // We verify it's not explicitly set to true
     });
   });
-});
 
+});

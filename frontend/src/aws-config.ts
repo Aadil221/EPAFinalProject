@@ -1,8 +1,16 @@
+// Environment-based configuration
+// Values are injected at build time via VITE_* environment variables
+// Workflows will fetch these from CloudFormation outputs
+
+const API_URL = import.meta.env.VITE_API_URL || '';
+const USER_POOL_ID = import.meta.env.VITE_USER_POOL_ID || '';
+const USER_POOL_CLIENT_ID = import.meta.env.VITE_USER_POOL_CLIENT_ID || '';
+
 export const awsConfig = {
   Auth: {
     Cognito: {
-      userPoolId: 'eu-west-1_XZAczHudo',
-      userPoolClientId: '7u27dv5quabpnlsqpprjknqr8v',
+      userPoolId: USER_POOL_ID,
+      userPoolClientId: USER_POOL_CLIENT_ID,
       loginWith: {
         email: true,
       },
@@ -11,7 +19,7 @@ export const awsConfig = {
   API: {
     REST: {
       InterviewQuestionsAPI: {
-        endpoint: 'https://i7yk0rm53j.execute-api.eu-west-1.amazonaws.com/prod/',
+        endpoint: API_URL,
         region: 'eu-west-1',
       },
     },
