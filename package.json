@@ -12,6 +12,9 @@
   },
   "overrides": {
     "fast-xml-parser": "^5.3.4",
-    "minimatch": "^10.2.1"
+    "minimatch": "^10.2.1",
+    "aws-cdk-lib": {
+      "minimatch": "^10.2.1"
+    }
   }
 }
