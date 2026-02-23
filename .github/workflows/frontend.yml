@@ -157,7 +157,6 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://d1r5j4m8zqp0oi.cloudfront.net
     steps:
       - uses: actions/checkout@v4
 
