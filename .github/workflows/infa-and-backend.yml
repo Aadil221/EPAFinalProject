@@ -183,6 +183,7 @@ jobs:
         working-directory: infrastructure
     environment:
       name: production
+      url: https://d1r5j4m8zqp0oi.cloudfront.net
 
     steps:
       - name: Checkout repo
