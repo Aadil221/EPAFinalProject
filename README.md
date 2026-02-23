@@ -38,14 +38,15 @@ A full-stack interview preparation platform with AI-powered feedback, built with
 ## 🚀 CI/CD Pipeline
 The project uses GitHub Actions for continuous deployment with parallel pipelines:
 
-- **Frontend Pipeline**: Build → Upload to S3
-- **Backend Pipeline**: Tests (black + flake8 + pytest) → CDK Check → Deploy
+- **Frontend Pipeline**: Quality Checks → Deploy Alpha → Deploy Prod
+- **Backend Pipeline**: Tests → CDK Check → Deploy Alpha → Integration Tests → Deploy Prod
 
 **📊 [View Full Pipeline Diagram](docs/PIPELINE.md)**
 
-### Environment
+### Environments
 | Environment | AWS Account | Region |
 |-------------|-------------|--------|
+| **Alpha** | 969831126809 | eu-west-1 |
 | **Production** | 315833389186 | eu-west-1 |
 
 ## 📁 Project Structure
