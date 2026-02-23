@@ -2,51 +2,8 @@
 
 ## Architecture Diagram
 
-```mermaid
-graph TB
-    subgraph CLIENT["CLIENT LAYER"]
-        User["User/Browser"]
-    end
+<img width="476" height="325" alt="image" src="https://github.com/user-attachments/assets/0e28cb5b-e45d-4216-b886-c9621eef543e" />
 
-    subgraph FRONTEND["FRONTEND"]
-        CF["CloudFront"]
-        S3["S3 Bucket"]
-        React["React SPA"]
-    end
-
-    subgraph API["APPLICATION LAYER"]
-        APIGW["API Gateway"]
-        Cognito["Cognito User Pool"]
-        L1["QuestionsHandler<br/>Lambda"]
-        L2["EvaluateAnswerFunction<br/>Lambda"]
-        L3["SignupHandler<br/>Lambda"]
-    end
-
-    subgraph DATA["DATA & INFRASTRUCTURE LAYER"]
-        DDB["DynamoDB<br/>Table"]
-        Bedrock["Bedrock<br/>(Claude)"]
-        CW["CloudWatch"]
-        Alarms["Alarms"]
-        Trail["CloudTrail"]
-    end
-
-    User -->|HTTPS| CF
-    CF --> S3
-    S3 --> React
-    React -->|API| APIGW
-    React -->|auth| Cognito
-
-    APIGW --> L1
-    APIGW --> L2
-    APIGW --> L3
-
-    L1 -->|DynamoDB query| DDB
-    L2 -->|Bedrock invoke| Bedrock
-    L3 -->|User Signup| Cognito
-
-    L1 & L2 & L3 -.->|Logs/Metrics| CW
-    CW -.->|Alerts| Alarms
-    L1 & L2 & L3 -.->|Audit Logs| Trail
 ```
 
 ## Components
