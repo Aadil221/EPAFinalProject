@@ -15,10 +15,23 @@ import logging
 import os
 from datetime import datetime, timezone
 import uuid
+import time
 import sys
 import boto3
 
+from custom_metrics import QuestionsMetrics, AdminMetrics, SystemMetrics
+
 # Configure JSON structured logging for CloudWatch
+# Initialize metrics emitters
+try:
+    questions_metrics = QuestionsMetrics()
+    admin_metrics = AdminMetrics()
+    system_metrics = SystemMetrics()
+except Exception as e:
+    logger = logging.getLogger()
+    logger.warning(f"Failed to initialize metrics: {e}")
+    questions_metrics = admin_metrics = system_metrics = None
+
 logger = logging.getLogger()
 log_level = os.environ.get("LOG_LEVEL", "INFO")
 logger.setLevel(getattr(logging, log_level))
@@ -115,27 +128,32 @@ def is_admin(event):
 
 def require_admin(event):
     """
-    Check admin access and return error response if not admin.
+    Decorator/helper to check admin access and emit metrics.
+    Returns error response if user is not admin, None if authorized.
 
-    Returns:
-        None if user is admin, error response dict otherwise
+    Usage in handler:
+        admin_check = require_admin(event)
+        if admin_check:
+            return admin_check
     """
-    if not is_admin(event):
-        user_sub = (
-            event.get("requestContext", {})
-            .get("authorizer", {})
-            .get("claims", {})
-            .get("sub", "unknown")
-        )
-        logger.warning(f"Unauthorized admin access attempt by user: {user_sub}")
+    # Emit admin authorization check metric
+    user_is_admin = is_admin(event)
+    if admin_metrics:
+        admin_metrics.admin_authorization_check(is_admin=user_is_admin)
+
+    if not user_is_admin:
+        # Emit unauthorized access attempt metric
+        if admin_metrics:
+            admin_metrics.unauthorized_admin_access(user_sub="unknown", operation="admin_check")
 
         return {
             "statusCode": 403,
-            "headers": {"Access-Control-Allow-Origin": "*", "Content-Type": "application/json"},
-            "body": json.dumps({"error": "Forbidden", "message": "Admin access required for this operation"}),
+            "headers": {"Access-Control-Allow-Origin": "*"},
+            "body": json.dumps({"error": "Forbidden: Admin access required"}),
         }
 
     return None
+
 
 
 def handler(event, context):
@@ -146,6 +164,9 @@ def handler(event, context):
     path = event["path"]
     method = event.get("httpMethod", "GET")
     request_id = context.aws_request_id if context else "local"
+
+    # Track start time for latency metrics
+    start_time = time.time()
 
     # Create logger adapter with request context
     log_extra = {"request_id": request_id, "method": method, "path": path}
@@ -170,6 +191,10 @@ def handler(event, context):
                     items.extend(response.get("Items", []))
 
                 items = [convert_dynamodb_item(item) for item in items]
+
+                # Emit metrics for questions retrieved
+                if questions_metrics:
+                    questions_metrics.questions_retrieved(len(items))
 
                 logger.info(
                     "Successfully retrieved questions",
@@ -214,6 +239,12 @@ def handler(event, context):
 
                 table.put_item(Item=item)
 
+                # Emit metric for question created
+                if admin_metrics:
+                    admin_metrics.question_created(category=body["category"])
+                if questions_metrics:
+                    questions_metrics.question_viewed(question_id=question_id, category=body["category"], difficulty=body.get("difficulty"))
+
                 logger.info("Question created", extra={**log_extra, "question_id": question_id})
 
                 return {
@@ -236,6 +267,11 @@ def handler(event, context):
 
                 if "Item" in response:
                     item = convert_dynamodb_item(response["Item"])
+
+                    # Emit metric for question viewed
+                    if questions_metrics:
+                        questions_metrics.question_viewed(question_id=question_id, category=item.get("category"), difficulty=item.get("difficulty"))
+
                     logger.info(
                         "Question found",
                         extra={**log_extra, "question_id": question_id},
@@ -245,6 +281,10 @@ def handler(event, context):
                         "headers": {"Access-Control-Allow-Origin": "*"},
                         "body": json.dumps(item),
                     }
+
+                # Emit metric for question not found
+                if questions_metrics:
+                    questions_metrics.question_not_found()
 
                 logger.warning(
                     "Question not found",
@@ -297,6 +337,10 @@ def handler(event, context):
                 # Fetch updated item
                 updated = table.get_item(Key={"id": question_id})
 
+                # Emit metric for question updated
+                if admin_metrics:
+                    admin_metrics.question_updated(question_id=question_id)
+
                 logger.info("Question updated", extra={**log_extra, "question_id": question_id})
                 return {
                     "statusCode": 200,
@@ -313,6 +357,10 @@ def handler(event, context):
                 logger.info("Deleting question", extra={**log_extra, "question_id": question_id})
 
                 table.delete_item(Key={"id": question_id})
+
+                # Emit metric for question deleted
+                if admin_metrics:
+                    admin_metrics.question_deleted(question_id=question_id)
 
                 return {
                     "statusCode": 204,
@@ -344,3 +392,9 @@ def handler(event, context):
             "headers": {"Access-Control-Allow-Origin": "*"},
             "body": json.dumps({"error": str(e)}),
         }
+
+    finally:
+        # Emit API latency metric
+        if questions_metrics:
+            latency_ms = (time.time() - start_time) * 1000
+            questions_metrics.api_latency(latency_ms, operation=f"{method}:{path}")
