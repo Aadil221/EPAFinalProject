@@ -1,14 +1,39 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { fetchAuthSession } from 'aws-amplify/auth';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Questions from './pages/Questions';
+import Admin from './pages/Admin';
 import Signup from './pages/Signup';
 import ChangePassword from './pages/ChangePassword';
 import './App.css';
 
 function NavBar() {
   const { user, logout } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if user is admin whenever user changes
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const session = await fetchAuthSession();
+        const groups = session.tokens?.accessToken?.payload['cognito:groups'] as string[] | undefined;
+        setIsAdmin(groups?.includes('Admin') || false);
+      } catch (error) {
+        console.error('Error checking admin access:', error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminAccess();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -28,6 +53,11 @@ function NavBar() {
           <Link to="/questions" className="nav-link">
             Questions
           </Link>
+          {user && isAdmin && (
+            <Link to="/admin" className="nav-link admin-link">
+              Admin Dashboard
+            </Link>
+          )}
           {user ? (
             <>
               <span className="user-email">
@@ -59,6 +89,7 @@ function AppContent() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/questions" element={<Questions />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/change-password" element={<ChangePassword />} />
           </Routes>

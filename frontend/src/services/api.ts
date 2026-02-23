@@ -124,3 +124,96 @@ export async function evaluateAnswer(
   const data = await response.json();
   return data;
 }
+
+/**
+ * Create a new question (Admin only)
+ */
+export async function createQuestion(
+  questionData: {
+    question_text: string;
+    category: string;
+    difficulty: string;
+    reference_answer?: string;
+  },
+  authToken: string
+): Promise<Question> {
+  const response = await fetch(`${API_BASE_URL}questions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': authToken,
+    },
+    body: JSON.stringify(questionData),
+  });
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('Forbidden: Admin access required');
+    }
+    const errorText = await response.text();
+    throw new Error(`Failed to create question: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+/**
+ * Update an existing question (Admin only)
+ */
+export async function updateQuestion(
+  id: string,
+  questionData: {
+    question_text?: string;
+    category?: string;
+    difficulty?: string;
+    reference_answer?: string;
+  },
+  authToken: string
+): Promise<Question> {
+  const response = await fetch(`${API_BASE_URL}questions/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': authToken,
+    },
+    body: JSON.stringify(questionData),
+  });
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('Forbidden: Admin access required');
+    }
+    if (response.status === 404) {
+      throw new Error('Question not found');
+    }
+    const errorText = await response.text();
+    throw new Error(`Failed to update question: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+/**
+ * Delete a question (Admin only)
+ */
+export async function deleteQuestion(id: string, authToken: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}questions/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': authToken,
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('Forbidden: Admin access required');
+    }
+    if (response.status === 404) {
+      throw new Error('Question not found');
+    }
+    const errorText = await response.text();
+    throw new Error(`Failed to delete question: ${response.status} ${errorText}`);
+  }
+}
