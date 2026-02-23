@@ -174,6 +174,13 @@ export class ServiceStack extends cdk.Stack {
     // Grant the Lambda function read/write permissions to the table
     table.grantReadWriteData(questionsHandler);
 
+    // Grant permission to emit custom CloudWatch metrics
+    questionsHandler.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['cloudwatch:PutMetricData'],
+      resources: ['*'],
+      conditions: { 'StringEquals': { 'cloudwatch:namespace': 'SkillScout' } }
+    }));
+
     // Lambda for Marcus evaluation (direct model invocation)
     const evaluateAnswerFn = new lambda.Function(this, 'EvaluateAnswerFunction', {
       runtime: lambda.Runtime.PYTHON_3_11,
@@ -187,6 +194,13 @@ export class ServiceStack extends cdk.Stack {
     evaluateAnswerFn.addToRolePolicy(new iam.PolicyStatement({
       actions: ['bedrock:InvokeModel'],
       resources: ['arn:aws:bedrock:eu-west-2::foundation-model/anthropic.claude-3-7-sonnet-20250219-v1:0'],
+    }));
+
+    // Grant permission to emit custom CloudWatch metrics
+    evaluateAnswerFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['cloudwatch:PutMetricData'],
+      resources: ['*'],
+      conditions: { 'StringEquals': { 'cloudwatch:namespace': 'SkillScout' } }
     }));
 
     // Lambda for user signup (bypasses selfSignUpEnabled restriction)
@@ -390,6 +404,93 @@ export class ServiceStack extends cdk.Stack {
         api5xxAlarm.addAlarmAction(snsAction);
       }
 
+      // ============================================
+      // Custom Metrics Alarms
+      // ============================================
+
+      // High API Latency Alarm
+      const highApiLatencyAlarm = new cloudwatch.Alarm(this, 'HighApiLatencyAlarm', {
+        alarmName: `${this.stackName}-high-api-latency`,
+        alarmDescription: 'Triggers when API response time exceeds 1000ms',
+        metric: new cloudwatch.Metric({
+          namespace: 'SkillScout',
+          metricName: 'APILatency',
+          statistic: 'Average',
+          period: cdk.Duration.minutes(5),
+        }),
+        threshold: 1000, // 1000 milliseconds
+        evaluationPeriods: 2, // 2 consecutive periods
+        comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      });
+
+      // High Not Found Rate Alarm
+      const highNotFoundRateAlarm = new cloudwatch.Alarm(this, 'HighNotFoundRateAlarm', {
+        alarmName: `${this.stackName}-high-not-found-rate`,
+        alarmDescription: 'Triggers when question not found (404) rate is high',
+        metric: new cloudwatch.Metric({
+          namespace: 'SkillScout',
+          metricName: 'QuestionNotFound',
+          statistic: 'Sum',
+          period: cdk.Duration.minutes(5),
+        }),
+        threshold: 10, // More than 10 not found errors in 5 minutes
+        evaluationPeriods: 1,
+        comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      });
+
+      // Unauthorized Admin Access Alarm
+      const unauthorizedAdminAccessAlarm = new cloudwatch.Alarm(this, 'UnauthorizedAdminAccessAlarm', {
+        alarmName: `${this.stackName}-unauthorized-admin-access`,
+        alarmDescription: 'Triggers when unauthorized admin access attempts are detected',
+        metric: new cloudwatch.Metric({
+          namespace: 'SkillScout',
+          metricName: 'UnauthorizedAdminAccess',
+          statistic: 'Sum',
+          period: cdk.Duration.minutes(5),
+        }),
+        threshold: 5, // More than 5 unauthorized attempts in 5 minutes
+        evaluationPeriods: 1,
+        comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      });
+
+      // No Question Activity Alarm
+      const noQuestionActivityAlarm = new cloudwatch.Alarm(this, 'NoQuestionActivityAlarm', {
+        alarmName: `${this.stackName}-no-question-activity`,
+        alarmDescription: 'Triggers when no questions have been retrieved (potential system issue)',
+        metric: new cloudwatch.Metric({
+          namespace: 'SkillScout',
+          metricName: 'QuestionsRetrieved',
+          statistic: 'Sum',
+          period: cdk.Duration.minutes(10),
+        }),
+        threshold: 1, // Less than 1 question retrieved in 10 minutes
+        evaluationPeriods: 1,
+        comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+        treatMissingData: cloudwatch.TreatMissingData.BREACHING, // Treat missing data as alarm state
+      });
+
+      // Add SNS actions to custom metric alarms if topic is configured
+      if (alarmTopic) {
+        const snsAction = new cloudwatch_actions.SnsAction(alarmTopic);
+        highApiLatencyAlarm.addAlarmAction(snsAction);
+        highNotFoundRateAlarm.addAlarmAction(snsAction);
+        unauthorizedAdminAccessAlarm.addAlarmAction(snsAction);
+        noQuestionActivityAlarm.addAlarmAction(snsAction);
+      }
+
+      new cdk.CfnOutput(this, 'CustomAlarmsInfo', {
+        value: JSON.stringify({
+          highApiLatency: highApiLatencyAlarm.alarmName,
+          highNotFoundRate: highNotFoundRateAlarm.alarmName,
+          unauthorizedAdminAccess: unauthorizedAdminAccessAlarm.alarmName,
+          noQuestionActivity: noQuestionActivityAlarm.alarmName,
+        }),
+        description: 'Custom CloudWatch Alarm names',
+      });
+
       // CloudWatch Dashboard
       const dashboard = new cloudwatch.Dashboard(this, 'ApiDashboard', {
         dashboardName: `${this.stackName}-monitoring`,
@@ -445,6 +546,124 @@ export class ServiceStack extends cdk.Stack {
               metricName: 'Latency',
               dimensionsMap: { ApiName: api.restApiName },
               statistic: 'Average',
+            }),
+          ],
+          width: 12,
+        })
+      );
+
+      // ====================
+      // Custom Metrics Widgets
+      // ====================
+
+      dashboard.addWidgets(
+        new cloudwatch.GraphWidget({
+          title: 'Questions Retrieved',
+          left: [
+            new cloudwatch.Metric({
+              namespace: 'SkillScout',
+              metricName: 'QuestionsRetrieved',
+              statistic: 'Sum',
+              period: cdk.Duration.minutes(5),
+            }),
+          ],
+          width: 12,
+        }),
+        new cloudwatch.GraphWidget({
+          title: 'Question Views by Category',
+          left: [
+            new cloudwatch.Metric({
+              namespace: 'SkillScout',
+              metricName: 'QuestionViewed',
+              statistic: 'Sum',
+              period: cdk.Duration.minutes(5),
+            }),
+          ],
+          width: 12,
+        })
+      );
+
+      dashboard.addWidgets(
+        new cloudwatch.GraphWidget({
+          title: 'Admin CRUD Operations',
+          left: [
+            new cloudwatch.Metric({
+              namespace: 'SkillScout',
+              metricName: 'QuestionCreated',
+              statistic: 'Sum',
+              period: cdk.Duration.minutes(5),
+              label: 'Created',
+            }),
+            new cloudwatch.Metric({
+              namespace: 'SkillScout',
+              metricName: 'QuestionUpdated',
+              statistic: 'Sum',
+              period: cdk.Duration.minutes(5),
+              label: 'Updated',
+            }),
+            new cloudwatch.Metric({
+              namespace: 'SkillScout',
+              metricName: 'QuestionDeleted',
+              statistic: 'Sum',
+              period: cdk.Duration.minutes(5),
+              label: 'Deleted',
+            }),
+          ],
+          width: 12,
+        }),
+        new cloudwatch.GraphWidget({
+          title: 'Admin Authorization',
+          left: [
+            new cloudwatch.Metric({
+              namespace: 'SkillScout',
+              metricName: 'AdminAuthCheck',
+              statistic: 'Sum',
+              period: cdk.Duration.minutes(5),
+            }),
+            new cloudwatch.Metric({
+              namespace: 'SkillScout',
+              metricName: 'UnauthorizedAdminAccess',
+              statistic: 'Sum',
+              period: cdk.Duration.minutes(5),
+              label: 'Unauthorized Attempts',
+              color: cloudwatch.Color.RED,
+            }),
+          ],
+          width: 12,
+        })
+      );
+
+      dashboard.addWidgets(
+        new cloudwatch.GraphWidget({
+          title: 'API Latency by Operation',
+          left: [
+            new cloudwatch.Metric({
+              namespace: 'SkillScout',
+              metricName: 'APILatency',
+              statistic: 'Average',
+              period: cdk.Duration.minutes(5),
+            }),
+          ],
+          right: [
+            new cloudwatch.Metric({
+              namespace: 'SkillScout',
+              metricName: 'APILatency',
+              statistic: 'p99',
+              period: cdk.Duration.minutes(5),
+              label: 'p99 Latency',
+            }),
+          ],
+          width: 12,
+        }),
+        new cloudwatch.GraphWidget({
+          title: 'Question Not Found (404 Errors)',
+          left: [
+            new cloudwatch.Metric({
+              namespace: 'SkillScout',
+              metricName: 'QuestionNotFound',
+              statistic: 'Sum',
+              period: cdk.Duration.minutes(5),
+              color: cloudwatch.Color.ORANGE,
             }),
           ],
           width: 12,
