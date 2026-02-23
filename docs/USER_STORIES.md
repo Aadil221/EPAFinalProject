@@ -106,6 +106,7 @@
 **Acceptance Criteria:**
 - All AWS resources defined in TypeScript CDK code
 - GitHub Actions deploys infrastructure automatically
+- Production deployments require manual approval
 - CloudWatch alarms configured for Lambda errors and API 5xx errors
 - Structured logging to CloudWatch with request IDs
 
@@ -180,7 +181,22 @@
 ## Platform Administrators
 ### _"As a platform administrator..."_
 
-#### Story 1: Monitoring and Observability
+#### Story 1: Automated CI/CD Pipeline
+**I want to** automate deployments with quality gates **so that** releases are consistent, tested, and secure before reaching production.
+
+**Acceptance Criteria:**
+- GitHub Actions triggers on push to main branch
+- Parallel pipelines for frontend and backend
+- Frontend pipeline: Quality checks → Trivy scan → Alpha → Manual approval → Production
+- Backend pipeline: Unit tests → CDK check → Trivy scan → Alpha → Integration tests → Manual approval → Production
+- Security scans fail build if high/critical vulnerabilities found
+- Manual approval required before production deployment
+- Deployment failures prevent promotion
+- Dependabot automatically creates PRs for dependency updates (weekly npm/pip, monthly GitHub Actions)
+
+---
+
+#### Story 2: Monitoring and Observability
 **I want to** monitor system health with alarms and centralized logging **so that** I can detect and resolve issues quickly.
 
 **Acceptance Criteria:**
@@ -202,7 +218,7 @@
 
 ---
 
-#### Story 2: Security and Cost Management
+#### Story 3: Security and Cost Management
 **I want to** enforce security best practices and optimize costs **so that** the application is secure and cost-efficient.
 
 **Acceptance Criteria:**
