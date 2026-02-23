@@ -122,6 +122,17 @@ Before deploying to **Production**, a team member must:
 
 ---
 
+## Dependabot
+Automated dependency management runs weekly to keep the project secure:
+- **Weekly Scans**: Checks Python (pip), npm, and GitHub Actions for updates
+- **Security Patches**: Automatically creates PRs for vulnerability fixes
+- **Version Updates**: Proposes updates for outdated dependencies
+- **Review Process**: All updates go through PR review before merging
+
+Configuration: [`.github/dependabot.yml`](../.github/dependabot.yml)
+
+---
+
 ## Pipeline Triggers
 | Files Changed | Pipeline Triggered |
 |---------------|-------------------|
