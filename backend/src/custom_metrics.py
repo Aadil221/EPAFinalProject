@@ -150,7 +150,7 @@ class AdminMetrics:
         dimensions = [{"Name": "Operation", "Value": operation}]
         emit_metric("UnauthorizedAdminAccess", 1, "Count", dimensions)
 
-        logger.warning(f"Unauthorized admin access attempt", extra={
+        logger.warning("Unauthorized admin access attempt", extra={
             "user_sub": user_sub,
             "operation": operation
         })
