@@ -37,6 +37,7 @@ export default function Admin() {
     difficulty: 'Medium',
     reference_answer: '',
   });
+  const [customCategory, setCustomCategory] = useState(false);
 
   // Delete confirmation
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -131,12 +132,15 @@ export default function Admin() {
       difficulty: 'Medium',
       reference_answer: '',
     });
+    setCustomCategory(false);
     setShowModal(true);
   };
 
   const openEditModal = (question: Question) => {
     setModalMode('edit');
     setEditingQuestion(question);
+    const existingCats = questions.map(q => q.category);
+    setCustomCategory(!existingCats.includes(question.category));
     setFormData({
       question_text: question.question_text,
       category: question.category,
@@ -362,14 +366,38 @@ export default function Admin() {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="category">Category *</label>
-                  <input
-                    type="text"
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    placeholder="e.g., AWS, JavaScript, React"
-                    required
-                  />
+                  {customCategory ? (
+                    <>
+                      <input
+                        type="text"
+                        id="category"
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        placeholder="Enter new category name"
+                        required
+                      />
+                      <button type="button" className="category-toggle" onClick={() => { setCustomCategory(false); setFormData({ ...formData, category: '' }); }}>
+                        ← Pick from existing
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        id="category"
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        required
+                      >
+                        <option value="">Select a category</option>
+                        {categories.filter(c => c !== 'All').map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                      <button type="button" className="category-toggle" onClick={() => { setCustomCategory(true); setFormData({ ...formData, category: '' }); }}>
+                        + Add new category
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 <div className="form-group">
