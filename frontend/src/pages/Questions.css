@@ -125,11 +125,11 @@
 
 .question-card {
   background: white;
-  border: 2px solid #e2e8f0;
+  border: 3px solid #1e293b;
   border-radius: 16px;
   padding: 2rem;
   transition: all 0.3s ease;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .question-card:hover {
