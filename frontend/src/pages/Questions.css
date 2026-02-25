@@ -124,8 +124,8 @@
 }
 
 .question-card {
-  background: white;
-  border: 3px solid #1e293b;
+  background: #ffffff;
+  border: 3px solid #ffffff;
   border-radius: 16px;
   padding: 2rem;
   transition: all 0.3s ease;
@@ -135,7 +135,7 @@
 .question-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-xl);
-  border-color: var(--primary);
+  border-color: #ffffff;
 }
 
 .question-header {
