@@ -25,8 +25,7 @@
   box-shadow: var(--shadow-xl);
   width: 100%;
   max-width: 440px;
-  border: 2px solid rgba(16, 185, 129, 0.15);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .login-card h2 {
@@ -60,19 +59,19 @@
 .form-group input {
   width: 100%;
   padding: 0.9rem 1rem;
-  border: 2px solid #10b981;
+  border: 2px solid var(--border);
   border-radius: 10px;
   font-size: 1rem;
   box-sizing: border-box;
   transition: all 0.2s ease;
-  background: white;
+  background: var(--bg-secondary);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #10b981;
+  border-color: var(--primary);
   background: white;
-  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .form-group input::placeholder {
@@ -91,12 +90,12 @@
   font-size: 1.05rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: var(--shadow);
 }
 
 .btn-full:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 
 .btn-full:active {
