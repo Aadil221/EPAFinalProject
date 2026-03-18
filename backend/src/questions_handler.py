@@ -144,16 +144,20 @@ def require_admin(event):
     if not user_is_admin:
         # Emit unauthorized access attempt metric
         if admin_metrics:
-            admin_metrics.unauthorized_admin_access(user_sub="unknown", operation="admin_check")
+            admin_metrics.unauthorized_admin_access(
+                user_sub="unknown",
+                operation="admin_check",
+            )
 
         return {
             "statusCode": 403,
             "headers": {"Access-Control-Allow-Origin": "*"},
-            "body": json.dumps({"error": "Forbidden: Admin access required"}),
+            "body": json.dumps(
+                {"error": "Forbidden: Admin access required"}
+            ),
         }
 
     return None
-
 
 
 def handler(event, context):
@@ -223,7 +227,9 @@ def handler(event, context):
                         return {
                             "statusCode": 400,
                             "headers": {"Access-Control-Allow-Origin": "*"},
-                            "body": json.dumps({"error": f"Missing required field: {field}"}),
+                            "body": json.dumps(
+                                {"error": f"Missing required field: {field}"}
+                            ),
                         }
 
                 # Generate ID and create item
@@ -243,9 +249,19 @@ def handler(event, context):
                 if admin_metrics:
                     admin_metrics.question_created(category=body["category"])
                 if questions_metrics:
-                    questions_metrics.question_viewed(question_id=question_id, category=body["category"], difficulty=body.get("difficulty"))
+                    questions_metrics.question_viewed(
+                        question_id=question_id,
+                        category=body["category"],
+                        difficulty=body.get("difficulty"),
+                    )
 
-                logger.info("Question created", extra={**log_extra, "question_id": question_id})
+                logger.info(
+                    "Question created",
+                    extra={
+                        **log_extra,
+                        "question_id": question_id,
+                    },
+                )
 
                 return {
                     "statusCode": 201,
@@ -270,7 +286,11 @@ def handler(event, context):
 
                     # Emit metric for question viewed
                     if questions_metrics:
-                        questions_metrics.question_viewed(question_id=question_id, category=item.get("category"), difficulty=item.get("difficulty"))
+                        questions_metrics.question_viewed(
+                            question_id=question_id,
+                            category=item.get("category"),
+                            difficulty=item.get("difficulty"),
+                        )
 
                     logger.info(
                         "Question found",
@@ -315,10 +335,21 @@ def handler(event, context):
                     }
 
                 # Build update expression
-                update_fields = ["question_text", "category", "difficulty", "reference_answer"]
-                update_expr = "SET " + ", ".join([f"#{f} = :{f}" for f in update_fields if f in body])
-                expr_attr_names = {f"#{f}": f for f in update_fields if f in body}
-                expr_attr_values = {f":{f}": body[f] for f in update_fields if f in body}
+                update_fields = [
+                    "question_text",
+                    "category",
+                    "difficulty",
+                    "reference_answer",
+                ]
+                update_expr = "SET " + ", ".join(
+                    [f"#{f} = :{f}" for f in update_fields if f in body]
+                )
+                expr_attr_names = {
+                    f"#{f}": f for f in update_fields if f in body
+                }
+                expr_attr_values = {
+                    f":{f}": body[f] for f in update_fields if f in body
+                }
 
                 if not expr_attr_values:
                     return {
@@ -341,7 +372,13 @@ def handler(event, context):
                 if admin_metrics:
                     admin_metrics.question_updated(question_id=question_id)
 
-                logger.info("Question updated", extra={**log_extra, "question_id": question_id})
+                logger.info(
+                    "Question updated",
+                    extra={
+                        **log_extra,
+                        "question_id": question_id,
+                    },
+                )
                 return {
                     "statusCode": 200,
                     "headers": {"Access-Control-Allow-Origin": "*"},
@@ -354,7 +391,13 @@ def handler(event, context):
                 if admin_check:
                     return admin_check
 
-                logger.info("Deleting question", extra={**log_extra, "question_id": question_id})
+                logger.info(
+                    "Deleting question",
+                    extra={
+                        **log_extra,
+                        "question_id": question_id,
+                    },
+                )
 
                 table.delete_item(Key={"id": question_id})
 

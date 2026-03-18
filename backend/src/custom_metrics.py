@@ -71,7 +71,11 @@ class QuestionsMetrics:
         emit_metric("QuestionsRetrieved", count, "Count")
 
     @staticmethod
-    def question_viewed(question_id: str, category: Optional[str] = None, difficulty: Optional[str] = None) -> None:
+    def question_viewed(
+        question_id: str,
+        category: Optional[str] = None,
+        difficulty: Optional[str] = None,
+    ) -> None:
         """Track individual question views with category/difficulty breakdown"""
         dimensions = []
 
