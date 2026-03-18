@@ -14,7 +14,7 @@
 ## End Users
 ### _"As an end user..."_
 
-#### Story 1: Create Account and Access Questions
+#### Story 1: Create Account and Access Questions — `MUST HAVE`
 **I want to** create an account and log in **so that** I can access the interview question bank and prepare for my interviews.
 
 **Acceptance Criteria:**
@@ -27,7 +27,7 @@
 
 ---
 
-#### Story 2: Find Relevant Questions
+#### Story 2: Find Relevant Questions — `MUST HAVE`
 **I want to** search and filter interview questions by category and difficulty **so that** I can practice topics relevant to my target role and skill level.
 
 **Acceptance Criteria:**
@@ -41,7 +41,7 @@
 
 ---
 
-#### Story 3: Practice with AI Feedback
+#### Story 3: Practice with AI Feedback — `MUST HAVE`
 **I want to** submit my answers and receive instant AI-powered evaluation **so that** I can understand my strengths, improve weaknesses, and build confidence.
 
 **Acceptance Criteria:**
@@ -58,7 +58,7 @@
 ## Developers
 ### _"As a developer..."_
 
-#### Story 1: Secure Backend API
+#### Story 1: Secure Backend API — `MUST HAVE`
 **I want to** implement secure authentication and authorization with AWS Cognito **so that** only authorized users can access protected resources and data.
 
 **Acceptance Criteria:**
@@ -72,7 +72,7 @@
 
 ---
 
-#### Story 2: AI-Powered Answer Evaluation
+#### Story 2: AI-Powered Answer Evaluation — `MUST HAVE`
 **I want to** integrate AWS Bedrock for answer evaluation **so that** candidates receive instant, intelligent feedback on their interview answers.
 
 **Acceptance Criteria:**
@@ -86,7 +86,7 @@
 
 ---
 
-#### Story 3: Scalable Data Layer
+#### Story 3: Scalable Data Layer — `MUST HAVE`
 **I want to** use DynamoDB for question storage **so that** the system scales efficiently and handles large question sets reliably.
 
 **Acceptance Criteria:**
@@ -100,7 +100,7 @@
 
 ---
 
-#### Story 4: Infrastructure as Code
+#### Story 4: Infrastructure as Code — `SHOULD HAVE`
 **I want to** define infrastructure using AWS CDK **so that** environments are reproducible, version-controlled, and deployable via CI/CD.
 
 **Acceptance Criteria:**
@@ -112,7 +112,7 @@
 
 ---
 
-#### Story 5: Custom Metrics and Monitoring
+#### Story 5: Custom Metrics and Monitoring — `SHOULD HAVE`
 **I want to** implement custom CloudWatch metrics and alarms **so that** the team can monitor business metrics, performance, and security proactively.
 
 **Acceptance Criteria:**
@@ -129,7 +129,7 @@
 ## Admin Users
 ### _"As an admin..."_
 
-#### Story 1: Manage Question Bank
+#### Story 1: Manage Question Bank — `MUST HAVE`
 **I want to** manage interview questions with proper authorization **so that** the question bank remains high-quality and only authorized users can make changes.
 
 **Acceptance Criteria:**
@@ -155,7 +155,7 @@
 
 ---
 
-#### Story 2: Delegate Admin Responsibilities
+#### Story 2: Delegate Admin Responsibilities — `COULD HAVE`
 **I want to** assign users to admin groups **so that** question management responsibilities can be shared across the team.
 
 **Acceptance Criteria:**
@@ -165,7 +165,7 @@
 
 ---
 
-#### Story 3: Monitor Admin Activity
+#### Story 3: Monitor Admin Activity — `SHOULD HAVE`
 **I want to** track admin operations and unauthorized access attempts **so that** security violations are detected and team activity is visible.
 
 **Acceptance Criteria:**
@@ -181,7 +181,7 @@
 ## Platform Administrators
 ### _"As a platform administrator..."_
 
-#### Story 1: Automated CI/CD Pipeline
+#### Story 1: Automated CI/CD Pipeline — `MUST HAVE`
 **I want to** automate deployments with quality gates **so that** releases are consistent, tested, and secure before reaching production.
 
 **Acceptance Criteria:**
@@ -196,7 +196,7 @@
 
 ---
 
-#### Story 2: Monitoring and Observability
+#### Story 2: Monitoring and Observability — `SHOULD HAVE`
 **I want to** monitor system health with alarms and centralized logging **so that** I can detect and resolve issues quickly.
 
 **Acceptance Criteria:**
@@ -218,7 +218,7 @@
 
 ---
 
-#### Story 3: Security and Cost Management
+#### Story 3: Security and Cost Management — `SHOULD HAVE`
 **I want to** enforce security best practices and optimize costs **so that** the application is secure and cost-efficient.
 
 **Acceptance Criteria:**
@@ -235,12 +235,23 @@
 
 ## Appendix
 
+### MoSCoW Prioritisation Summary
+
+| Priority | Stories | Count |
+|----------|---------|-------|
+| **Must Have** | EU1 (Account & Login), EU2 (Search & Filter), EU3 (AI Feedback), Dev1 (Secure API), Dev2 (AI Evaluation), Dev3 (Data Layer), Admin1 (Manage Questions), PA1 (CI/CD Pipeline) | 8 |
+| **Should Have** | Dev4 (Infrastructure as Code), Dev5 (Custom Metrics), Admin3 (Monitor Admin Activity), PA2 (Monitoring & Observability), PA3 (Security & Cost) | 5 |
+| **Could Have** | Admin2 (Delegate Admin Responsibilities) | 1 |
+
+**Rationale:**
+- **Must Have** stories represent the core product — without any one of them, the application either does not work, is insecure, or cannot be deployed. These were built first.
+- **Should Have** stories improve production quality, observability, and cost efficiency. The application technically functions without them, but they are important for running it professionally. These were built after the must-haves were complete.
+- **Could Have** stories are nice-to-have enhancements. Delegating admin responsibilities is useful for a team but not critical for a solo developer. This was implemented because it was straightforward, but it would have been the first to drop if time was tight.
+
+---
+
 ### User Personas Summary
 1. **End User (Candidate):** Prepares for interviews by practicing questions and receiving AI feedback.
 2. **Developer:** Builds and maintains the application, ensuring security, reliability, and code quality.
 3. **Admin User:** Manages interview questions, monitors admin activity and security violations.
 4. **Platform Administrator:** Manages infrastructure, deployments, monitoring, and security.
-
-**Document Version:** 1.0
-**Last Updated:** February 23, 2026
-**Updated By:** Aadil
