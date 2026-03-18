@@ -658,7 +658,25 @@ Let me give you concrete examples.
 
 Now, K8 specifically mentions operating system updates, container patching, and security patching. With a serverless architecture, a significant advantage is that AWS manages the underlying infrastructure. I do not manage any operating systems or containers. AWS patches the Lambda runtime, the API Gateway infrastructure, the DynamoDB servers, and the CloudFront edge locations. This is a deliberate architectural choice — by going serverless, I delegate the patching responsibility to AWS, which has dedicated teams and automated processes for keeping the underlying infrastructure up to date.
 
-However, I am still responsible for patching my own dependencies. This is where **Dependabot** comes in. Dependabot scans my npm and pip dependencies weekly and creates pull requests for any outdated or vulnerable packages. When I merge a Dependabot PR, the pipeline automatically deploys the updated dependencies through the same CI/CD process I just demonstrated.
+However, I am still responsible for patching my own application dependencies — the npm packages in my frontend and infrastructure code, the Python packages in my backend, and even the GitHub Actions I use in my CI/CD pipeline. If any of these have a known vulnerability and I do not update them, my application is at risk even though the underlying AWS infrastructure is fully patched by Amazon.
+
+This is where **Dependabot** comes in. Let me show you the configuration.
+
+> **[SCREEN: Open .github/dependabot.yml]**
+
+Dependabot is a tool built into GitHub that automatically monitors your project's dependencies for security vulnerabilities and outdated versions. Instead of me manually checking every package every week — which is tedious and easy to forget — Dependabot does it automatically and creates a pull request when something needs updating.
+
+I have configured three separate monitoring schedules, one for each ecosystem in my project.
+
+The first monitors my **npm packages** — that covers both the React frontend and the CDK infrastructure code. It checks every Monday at 9am, and I have configured it to group minor and patch updates together into a single pull request. Without that grouping, I would get a separate PR for every single package update, which creates unnecessary noise. By grouping them, I get one manageable PR that bundles multiple updates together.
+
+The second monitors my **Python packages** in the backend directory — things like boto3, pytest, and the libraries my Lambda functions depend on. Same weekly Monday schedule, same grouping strategy.
+
+The third monitors my **GitHub Actions** — the checkout, setup-python, setup-node, and configure-aws-credentials actions used in my pipeline. These check monthly because they change less frequently, but they still need to stay current. For example, there are currently PRs open to update several of my Actions to newer versions.
+
+So what happens when Dependabot opens a pull request? It triggers the exact same CI/CD pipeline I demonstrated earlier. The pipeline runs all the tests — linting, unit tests, vulnerability scanning with Trivy. If everything passes, I review the PR, merge it, and the updated dependencies deploy through the same automated process all the way to production. If the tests fail — which actually happened recently with one of the dependency update PRs — the pipeline catches it and I know the update needs investigation before I merge it. That is the safety net working exactly as designed.
+
+The important point is that this gives me fully automated detection and nearly fully automated patching. The only manual step is my review and approval of the PR, which I have kept deliberately because I want a human checkpoint before dependencies change in production.
 
 For the **distinction criteria** — fully automating the refreshing and patching process — my pipeline already handles this. When a Dependabot PR is merged, the pipeline runs all tests, deploys to Alpha, runs integration tests, and after manual approval, deploys to production. The only manual step is the approval gate. I could remove that gate for Dependabot PRs specifically, which would make it fully automated, but I have chosen to keep the human checkpoint for now.
 
