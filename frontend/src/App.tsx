@@ -96,7 +96,7 @@ function AppContent() {
         </main>
 
         <footer className="footer">
-          <p>&copy; 2026 SkillScout. Master your interviews with AI-powered practice.</p>
+          <p>&copy; 2026 SkillScout. Master your interviews with AI-powered practice. + this is a test.</p>
         </footer>
       </div>
     </BrowserRouter>
