@@ -1,8 +1,7 @@
 # EPA Presentation Script — SkillScout
 
-> **Duration:** ~2.5 hours | **Format:** Word-for-word script with demo instructions
+> **Duration:** ~2 hours | **Format:** Word-for-word script with demo instructions
 > **Project:** SkillScout — AI-Powered Interview Question Bank
-> **Structure:** 8 KSB sections following the end-to-end project flow
 
 ---
 
@@ -12,14 +11,13 @@
 |---------|-------|----------|--------------|
 | 1 | Introduction & Project Overview | 10 min | — |
 | 2 | Meeting User Needs | 12 min | K4, K10, K21, S3 |
-| 3 | Code Quality | 25 min | K2, K5, K7, K14, K16, S9, S10, S11, S14, S17, S18, S20 |
-| 4 | The CI/CD Pipeline + LIVE DEMO | 22 min | K1, K15, S15 |
+| 3 | The Codebase | 12 min | K2, K7, K13, K17, S11, S17, S18, S20 |
+| 4 | CI/CD Pipeline + LIVE DEMO | 25 min | K1, K8, K15, S5, S12, S15 |
 | — | BREAK | 10 min | — |
-| 5 | Refreshing & Patching | 10 min | K8, S5 |
-| 6 | Data Persistence | 10 min | K12, S7 |
-| 7 | Operability | 18 min | K11, S6, S19, B3 |
-| 8 | Automation | 8 min | K13, K17, S12 |
-| 9 | Summary & Q&A | 10 min | — |
+| 5 | Security | 12 min | K5, K16, S9, S10 |
+| 6 | Testing | 10 min | K14, S14 |
+| 7 | Observability | 18 min | K11, K12, S6, S7, S19, B3 |
+| 8 | Next Steps & Summary | 10 min | — |
 
 ---
 
@@ -31,7 +29,7 @@
 
 Good morning/afternoon, and thank you for taking the time to assess my End Point Assessment. My name is Aadil, and today I will be presenting SkillScout — a full-stack, serverless interview preparation platform that I have designed, built, and deployed end-to-end.
 
-Over the next two and a half hours, I am going to walk you through the entire project lifecycle — from user needs through the codebase, a live CI/CD pipeline demo, and then monitoring, data persistence, automation, and security.
+Over the next two hours, I am going to walk you through the entire project lifecycle — from user needs through the codebase, a live CI/CD pipeline demo, and then security, testing, and observability.
 
 Everything I am about to show you is my own work. I built it, I deployed it, I monitor it, and I maintain it — which I believe reflects the "you build it, you run it" philosophy that underpins good DevOps practice.
 
@@ -115,11 +113,13 @@ For architecture, I followed the **serverless microservice pattern** — each La
 
 K10 emphasises how user experience drives development. A concrete example: users told me that typing category names manually on the Admin page was error-prone. So I implemented a category dropdown that pulls from existing categories, with the option to add a new custom one. User experience is iterative — you build, gather feedback, improve, and repeat.
 
+Now that you understand what I built and why, let me show you the actual code.
+
 ---
 
-## SECTION 3: CODE QUALITY (25 minutes)
+## SECTION 3: THE CODEBASE (12 minutes)
 
-> **KSBs: K2, K5, K7, K14, K16, S9, S10, S11, S14, S17, S18, S20**
+> **KSBs: K2, K7, K13, K17, S11, S17, S18, S20**
 
 ### Source Control — K2, S20 (3 minutes)
 
@@ -131,7 +131,7 @@ I use Git with GitHub. I work on **feature branches** to isolate changes, keepin
 
 I practise **small, frequent commits** — each one a single logical change. This makes merging straightforward because conflicts are contained to small changes. For code quality, I use **Flake8** for Python linting and **ESLint** with TypeScript rules on the frontend, both running automatically in CI.
 
-### General Purpose Programming — K7, S17 (3 minutes)
+### Programming & APIs — K7, K13, K17, S17 (5 minutes)
 
 > **[SCREEN: Open backend/src/questions_handler.py]**
 
@@ -139,11 +139,13 @@ I practise **small, frequent commits** — each one a single logical change. Thi
 
 Notice the `require_admin(event)` calls on every write operation. This function checks the JWT token for Admin group membership. If the user is not an admin, it records a custom metric and returns 403 Forbidden — the request never reaches the database.
 
-**TypeScript** is my frontend and infrastructure language. Let me show you the API service.
+Throughout the backend, I work with APIs at multiple levels. My Lambda functions call the **AWS SDK (Boto3)** to interact with DynamoDB — `table.scan()` to read, `table.put_item()` to write — and with Bedrock — `bedrock.invoke_model()` to call Claude for AI evaluations. I handle pagination for DynamoDB, which limits results to 1MB per call, by looping with `LastEvaluatedKey` until all data is retrieved.
+
+**TypeScript** is my frontend and infrastructure language.
 
 > **[SCREEN: Open frontend/src/services/api.ts]**
 
-I define TypeScript **interfaces** for every data structure — `Question`, `EvaluationResponse`. An interface specifies the exact shape of an object. If I accidentally write `question.categorry` with a typo, TypeScript catches it immediately in my editor, not in production.
+I define TypeScript **interfaces** for every data structure — `Question`, `EvaluationResponse`. An interface specifies the exact shape of an object. If I accidentally write `question.categorry` with a typo, TypeScript catches it immediately in my editor, not in production. The frontend **REST API** calls follow a consistent pattern — attach the JWT token as an Authorization header, call `fetch`, check `response.ok`, parse JSON, and throw typed errors on failure.
 
 ### Infrastructure as Code — S18 (2 minutes)
 
@@ -151,97 +153,21 @@ I define TypeScript **interfaces** for every data structure — `Question`, `Eva
 
 This is `service.ts` — 739 lines of TypeScript defining my entire AWS infrastructure. Every resource — DynamoDB, Lambda, API Gateway, Cognito, S3, CloudFront, alarms, dashboard — is defined here. You can see the DynamoDB table with its partition key, billing mode, and encryption. The Lambda functions with runtime, memory, and environment variables. The CloudWatch alarms with thresholds and evaluation periods. All in code, stored in Git, reproducible with a single `cdk deploy`.
 
-### Test Driven Development — K14, S14 (5 minutes)
-
-> **[SCREEN: Open backend/tests/test_admin_authorization.py]**
-
-My testing strategy follows the **test pyramid** — 37 backend unit tests, 13 CDK infrastructure tests, and 8 integration tests. The heavy lifting is done by fast unit tests. Since my code talks to real AWS services, I use **mocking** — fake objects that stand in for DynamoDB, Cognito, and CloudWatch during testing. Let me show you:
-
-```python
-from unittest.mock import patch, MagicMock
-
-mock_table = MagicMock()
-mock_dynamodb = MagicMock()
-mock_dynamodb.Table.return_value = mock_table
-
-with patch.dict(os.environ, {"TABLE_NAME": "test-table", "LOG_LEVEL": "INFO"}):
-    with patch("boto3.resource", return_value=mock_dynamodb):
-        from questions_handler import handler
-```
-
-The `patch("boto3.resource")` line intercepts the real AWS call and hands back my fake instead. The tests run entirely offline in milliseconds. Here is an actual test:
-
-```python
-def test_post_question_as_admin():
-    mock_table.put_item.return_value = {}
-
-    event = create_event(
-        "POST", "/questions",
-        body={"question_text": "What is AWS?", "category": "AWS", "difficulty": "Medium"},
-        groups="Admin"
-    )
-    context = MagicMock()
-    context.aws_request_id = "test-request-123"
-
-    response = handler(event, context)
-
-    assert response["statusCode"] == 201
-    body = json.loads(response["body"])
-    assert body["question_text"] == "What is AWS?"
-```
-
-I simulate a successful database write, create a fake admin event, call the handler, and verify I get 201 Created. I also test the opposite — a regular user gets 403 Forbidden, and I can prove the database was never touched. Beyond those, I cover missing fields, non-existent questions, and badly formatted requests — 21 tests total.
-
-For infrastructure, I have 13 CDK tests using Jest — checking that DynamoDB has point-in-time recovery, S3 has public access blocked, Lambda uses the correct Python version. If someone accidentally removes a security setting, these tests catch it.
-
-### Security — K5, S9, S10 (7 minutes)
-
-> **[SCREEN: Open docs/THREAT_MODEL.md]**
-
-My threat model starts with seven **security tenets**. The three most important: **Least Privilege** — every component gets only the minimum permissions needed. **Defence in Depth** — security at every layer, frontend through database. **Risk-Based Decision Making** — proportionate controls based on likelihood and impact.
-
-> **[Scroll to: Assumptions, Assets, and Threat Actors]**
-
-I documented eleven assumptions, nine assets, and five threat actors — including insiders and compromised accounts, not just external hackers.
-
-> **[Scroll to: Threats table]**
-
-I used the **STRIDE** framework — six categories of attack. Let me highlight the key ones:
-
-**S — Spoofing:** Can someone pretend to be someone they are not? Mitigation: every endpoint requires a valid JWT token; API Gateway rejects invalid tokens before reaching my code.
-
-**T — Tampering:** Can someone change data without authorisation? Mitigation: only Lambda functions talk to DynamoDB, only admin users trigger writes, IAM roles enforce least privilege.
-
-**I — Information Disclosure:** Can data leak? Mitigation: authentication on every endpoint, S3 access blocked except through CloudFront. And critically — **encryption**. In transit, HTTPS is enforced by CloudFront. At rest, DynamoDB uses AWS-managed encryption keys and both S3 buckets use server-side encryption. This costs nothing but means even raw storage access would yield unreadable data.
-
-> **[SCREEN: Show the DynamoDB encryption configuration in service.ts]**
-
-> **[SLIDE 16: Data Security]**
-
-You can see `encryption: TableEncryption.AWS_MANAGED` on DynamoDB and `encryption: BucketEncryption.S3_MANAGED` on S3 — set in code, tested in CDK tests, deployed through the pipeline.
-
-**E — Elevation of Privilege:** Can someone gain access they should not have? The Lambda checks `cognito:groups` on every write. Even if someone bypasses the UI and calls the API directly, they get 403. And JWTs are cryptographically signed — modifying a token invalidates the signature.
-
-In total, I identified **17 threats** — 7 High, 10 Medium — all with implemented mitigations. I also created **20 security tests** to verify the controls work, including 6 automated tests in the pipeline.
-
-> **[Scroll to: Security Tests]**
-
-For **vulnerability scanning**, Trivy runs in both pipelines — HIGH or CRITICAL findings fail the build. For **dependency checking**, Dependabot scans weekly and auto-creates update PRs. This is the iterative security approach K5 requires — no vulnerabilities, all dependencies present and current.
-
 ### Problem Solving — S11 (2 minutes)
 
-Let me step back from the technical detail for a moment and talk about how I approach problems when things go wrong — because things always go wrong. I follow a methodology called PDAC: Problem, Diagnosis, Action, Confirm.
+Let me give you a concrete example of how I approach problems. I follow a methodology called **PDAC: Problem, Diagnosis, Action, Confirm**.
 
-A real example: users reported that login page inputs were invisible. **Problem:** inputs not visible. **Diagnosis:** using browser DevTools, I found `Admin.css` had a `.form-group input` rule with transparent styles leaking into the Login page due to equal CSS specificity. **Action:** I scoped the Login selectors to `.login-card .form-group input` for higher specificity. **Confirm:** inputs visible on Login, Admin page still working. Systematic, not guesswork.
+Users reported that login page inputs were invisible. **Problem:** inputs not visible. **Diagnosis:** using browser DevTools, I found `Admin.css` had a `.form-group input` rule with transparent styles leaking into the Login page due to equal CSS specificity. **Action:** I scoped the Login selectors to `.login-card .form-group input` for higher specificity. **Confirm:** inputs visible on Login, Admin page still working. Systematic, not guesswork.
 
+Now you have seen the code — let me show you how it gets from my laptop to the end user.
 
 ---
 
-## SECTION 4: THE CI/CD PIPELINE + LIVE DEMO (22 minutes)
+## SECTION 4: CI/CD PIPELINE + LIVE DEMO (25 minutes)
 
-> **KSBs: K1, K15, S15**
+> **KSBs: K1, K8, K15, S5, S12, S15**
 
-### Pipeline Overview — K1, K15 (7 minutes)
+### Pipeline Overview — K1, K15 (5 minutes)
 
 > **[SLIDE 8: CI/CD Pipelines]**
 
@@ -287,9 +213,7 @@ The push has triggered the frontend pipeline. Let me open GitHub Actions so we c
 
 > **[SCREEN: Open GitHub Actions tab, show the running workflow]**
 
-You can see the pipeline running — quality checks first (ESLint, TypeScript, Trivy), then Alpha deployment.
-
-The pipeline is building the React application with the Alpha environment variables — the Alpha API URL and Cognito configuration. It is uploading the built files to the Alpha S3 bucket and invalidating the CloudFront cache to ensure the new version is served immediately.
+You can see the pipeline running — quality checks first (ESLint, TypeScript, Trivy), then Alpha deployment. The pipeline is building the React application with the Alpha environment variables, uploading the built files to the Alpha S3 bucket, and invalidating the CloudFront cache.
 
 > **[Wait for Alpha deploy to complete]**
 
@@ -297,9 +221,7 @@ Alpha deployment is complete. Let me open the Alpha URL to verify the change is 
 
 > **[DEMO: Open Alpha URL, show the updated footer]**
 
-There it is — you can see the updated footer text on the Alpha environment. The change has gone from my local machine to a deployed environment in just a few minutes, with automated quality gates at every step.
-
-Now the pipeline is waiting for manual approval. I am satisfied the change is correct, so I will approve.
+There it is — the updated footer on the Alpha environment. The change has gone from my local machine to a deployed environment in just a few minutes, with automated quality gates at every step. Now the pipeline is waiting for manual approval. I am satisfied the change is correct, so I will approve.
 
 > **[DEMO: Click approve in GitHub Actions]**
 
@@ -309,53 +231,146 @@ Now the pipeline is waiting for manual approval. I am satisfied the change is co
 
 The change is live in production. A code commit has progressed seamlessly from source to end user — automated quality gates at every step, with only the deliberate approval gate as manual intervention.
 
+### Refreshing, Patching & Automation — K8, S5, S12 (5 minutes)
+
+> **[SLIDE 11: Refreshing & Patching]**
+
+What you just saw is also how I handle **refreshing and patching**. The pipeline implements **immutable infrastructure** — instead of modifying resources in place, CDK and CloudFormation replace them entirely. When I change Lambda code, a new deployment package replaces the old one. When I deploy a new frontend, S3 objects are replaced and CloudFront cache is invalidated. No drift, no "works on my machine."
+
+For OS patching — with serverless, AWS patches the underlying infrastructure. I do not manage any operating systems. But I am responsible for **my own dependencies**, which is where Dependabot comes in.
+
+> **[SCREEN: Open .github/dependabot.yml]**
+
+I have three Dependabot schedules: **npm** (frontend + CDK, weekly), **pip** (Python backend, weekly), and **GitHub Actions** (monthly). Updates are grouped so I get one manageable PR per ecosystem instead of dozens. When a PR is opened, it triggers the full CI/CD pipeline — if tests pass, I review and merge, and the update deploys all the way through to production.
+
+Every piece of automation saves real time. `cdk deploy` provisions every AWS resource in ~10 minutes — manually it would take hours. Every push triggers automated testing and deployment in 6-14 minutes. Linting, formatting, and Trivy scanning run on every commit. For the **distinction criteria** — Dependabot is my example of identifying an additional automation opportunity. I identified that manually checking for dependency updates was inefficient and easy to forget. By configuring Dependabot, I automated the entire detection-to-deployment process, reducing it from a regular manual task to a simple PR review.
+
+Let us take a break. When we come back, I will cover how I secured the application, my testing strategy, and how I monitor everything in production.
+
 ---
 
 ## — BREAK (10 minutes) —
 
 > **[SLIDE 10: Break]**
 
-Let us take a 10-minute break. When we come back, I will cover refreshing and patching, data persistence, operability, automation, and data security.
+---
+
+## SECTION 5: SECURITY (12 minutes)
+
+> **KSBs: K5, K16, S9, S10**
+
+Welcome back. You have seen the code and watched it deploy through the pipeline. Now let me talk about something that underpins all of it — security. I did not bolt security on at the end. I started with a threat model before building the security controls.
+
+> **[SCREEN: Open docs/THREAT_MODEL.md]**
+
+My threat model starts with seven **security tenets**. The three most important: **Least Privilege** — every component gets only the minimum permissions needed. **Defence in Depth** — security at every layer, from frontend through to the database. **Risk-Based Decision Making** — proportionate controls based on likelihood and impact.
+
+> **[Scroll to: Assumptions, Assets, and Threat Actors]**
+
+I documented eleven assumptions — things I took as given when writing the model. For example, all traffic uses HTTPS, and the frontend never talks directly to the database. If any assumption changes, you know exactly which threats need reassessing. I identified nine assets worth protecting — from the obvious ones like question data, to less obvious ones like audit logs and IAM roles. And I defined five threat actors — not just the external hacker, but also an authenticated user trying to access admin features, a compromised admin account, someone with direct AWS access, and someone with CI/CD pipeline access who could inject malicious code. The most dangerous threats often come from insiders or compromised trusted accounts, so considering all five gives much better coverage.
+
+> **[Scroll to: Threats table]**
+
+I used the **STRIDE** framework — six categories of attack. Let me walk through the key ones:
+
+**S — Spoofing:** Can someone pretend to be someone they are not? Mitigation: every endpoint requires a valid JWT token; API Gateway rejects invalid tokens before reaching my code.
+
+**T — Tampering:** Can someone change data without authorisation? Mitigation: only Lambda functions talk to DynamoDB, only admin users trigger writes, IAM roles enforce least privilege.
+
+**I — Information Disclosure:** Can data leak? Mitigation: authentication on every endpoint, S3 access blocked except through CloudFront. And critically — **encryption**. In transit, HTTPS is enforced by CloudFront. At rest, DynamoDB uses AWS-managed encryption keys and both S3 buckets use server-side encryption. This costs nothing but means even raw storage access would yield unreadable data.
+
+> **[SCREEN: Show the DynamoDB encryption configuration in service.ts]**
+
+> **[SLIDE 16: Data Security]**
+
+You can see `encryption: TableEncryption.AWS_MANAGED` on DynamoDB and `encryption: BucketEncryption.S3_MANAGED` on S3 — set in code, tested in my CDK test suite, and deployed through the pipeline. Encryption can never be accidentally turned off.
+
+**E — Elevation of Privilege:** Can someone gain access they should not have? The Lambda checks `cognito:groups` on every write. Even if someone bypasses the UI and calls the API directly, they get 403. And JWTs are cryptographically signed — modifying a token invalidates the signature.
+
+In total, I identified **17 threats** — 7 High priority, 10 Medium — all with implemented mitigations. I also created **20 security tests** to verify the controls work, including 6 automated tests in the pipeline.
+
+> **[Scroll to: Security Tests]**
+
+For **vulnerability scanning**, Trivy runs in both pipelines — HIGH or CRITICAL findings fail the build. For **dependency checking**, Dependabot scans weekly and auto-creates update PRs. This is the iterative security approach K5 requires — no vulnerabilities, all dependencies present and current.
+
+That covers how I designed the security. But security controls on paper are only useful if they are actually enforced and tested. Let me show you how I test this application.
 
 ---
 
-## SECTION 5: REFRESHING AND PATCHING (10 minutes)
+## SECTION 6: TESTING (10 minutes)
 
-> **KSBs: K8, S5**
+> **KSBs: K14, S14**
 
-> **[SLIDE 11: Refreshing & Patching]**
+### Testing Strategy — K14, S14
 
-Welcome back. The pipeline I showed you implements **immutable infrastructure** — instead of modifying resources in place, CDK and CloudFormation replace them entirely. When I change Lambda code, a new deployment package replaces the old one. When I deploy a new frontend, S3 objects are replaced and CloudFront cache is invalidated. No drift, no "works on my machine."
+> **[SCREEN: Open backend/tests/test_admin_authorization.py]**
 
-For K8's mention of OS patching — with serverless, AWS patches the underlying infrastructure. I do not manage any operating systems. But I am responsible for **my own dependencies**, which is where Dependabot comes in.
+My testing strategy follows the **test pyramid** — 37 backend unit tests, 13 CDK infrastructure tests, and 8 integration tests. The heavy lifting is done by fast unit tests that run in seconds and give immediate feedback.
 
-> **[SCREEN: Open .github/dependabot.yml]**
+Since my code talks to real AWS services — DynamoDB, Cognito, CloudWatch — I use **mocking**. A mock is a fake object that stands in for a real service during testing. I control exactly what it returns, and afterwards I can check whether it was called at all. Let me show you how this works:
 
-I have three Dependabot schedules: **npm** (frontend + CDK, weekly), **pip** (Python backend, weekly), and **GitHub Actions** (monthly). Updates are grouped so I get one manageable PR per ecosystem instead of dozens. When a PR is opened, it triggers the full CI/CD pipeline — if tests pass, I review and merge.
+> **[SCREEN: Show the mock setup in the test file]**
 
-For the **distinction criteria** — fully automating refreshing and patching — Dependabot detects, the pipeline tests, and after my approval it deploys all the way to production. The only manual step is the approval gate, which I keep deliberately.
+```python
+from unittest.mock import patch, MagicMock
+
+mock_table = MagicMock()
+mock_dynamodb = MagicMock()
+mock_dynamodb.Table.return_value = mock_table
+
+with patch.dict(os.environ, {"TABLE_NAME": "test-table", "LOG_LEVEL": "INFO"}):
+    with patch("boto3.resource", return_value=mock_dynamodb):
+        from questions_handler import handler
+```
+
+`MagicMock()` creates a fake object that accepts any method call and returns whatever I tell it to. The `patch("boto3.resource")` line intercepts the real AWS call and hands back my fake instead — so the code thinks it is talking to DynamoDB, but it is actually talking to a fake I control. No real AWS calls happen. The tests run entirely offline in milliseconds. Here is an actual test:
+
+```python
+def test_post_question_as_admin():
+    mock_table.put_item.return_value = {}
+
+    event = create_event(
+        "POST", "/questions",
+        body={"question_text": "What is AWS?", "category": "AWS", "difficulty": "Medium"},
+        groups="Admin"
+    )
+    context = MagicMock()
+    context.aws_request_id = "test-request-123"
+
+    response = handler(event, context)
+
+    assert response["statusCode"] == 201
+    body = json.loads(response["body"])
+    assert body["question_text"] == "What is AWS?"
+```
+
+I simulate a successful database write, create a fake admin event, call the handler, and verify I get 201 Created. I also write the opposite test — authenticating as a regular user and confirming the handler returns 403 Forbidden. The key advantage of mocking here is that I can prove the database was never even touched — the security check stopped the request before it reached any data. Beyond those, I cover missing fields, non-existent questions, and badly formatted requests — 21 tests total for this one handler.
+
+> **[SCREEN: Show infrastructure/test/service-stack.test.ts]**
+
+For infrastructure, I have 13 CDK tests using Jest. These check that my CDK code produces the correct AWS resource configuration — DynamoDB has point-in-time recovery, S3 has public access blocked, Lambda uses the correct Python version, and the signup endpoint allows unauthenticated access. If someone accidentally removes a security setting in the CDK code, these tests catch it before it reaches production.
+
+So the code is tested, the security is verified, and the pipeline deploys it all automatically. The final piece is knowing what is happening once it is running in production. That is observability.
 
 ---
 
-## SECTION 6: DATA PERSISTENCE (10 minutes)
+## SECTION 7: OBSERVABILITY (18 minutes)
 
-> **KSBs: K12, S7**
+> **KSBs: K11, K12, S6, S7, S19, B3**
 
-### Database Selection — K12 (4 minutes)
+### Database & Troubleshooting — K12, S7 (5 minutes)
+
+Let me start with where the data lives and how I troubleshoot when things go wrong.
 
 > **[SLIDE 12: Why DynamoDB?]**
 
 > **[SCREEN: Show the DynamoDB table definition in service.ts]**
 
-My data model is simple — questions with ID, text, category, difficulty. No complex relationships, no joins needed. Access patterns are read-heavy with simple queries. Given this, DynamoDB was the right choice: **single-digit millisecond latency**, **automatic scaling**, **on-demand billing** (pay only for what I use), **zero administration**, and **native Lambda integration** without connection pooling complexity.
+My data model is simple — questions with ID, text, category, difficulty. No complex relationships, no joins needed. Access patterns are read-heavy with simple queries. Given this, DynamoDB was the right choice: **single-digit millisecond latency**, **automatic scaling**, **on-demand billing** (pay only for what I use), **zero administration**, and **native Lambda integration** without connection pooling complexity. A relational database like RDS PostgreSQL would have been overkill.
 
-A relational database like RDS PostgreSQL would have been overkill — no joins needed, higher costs, and the connection management mismatch with short-lived Lambda functions adds unnecessary complexity.
-
-### Troubleshooting Distributed Systems — S7 (6 minutes)
+When something goes wrong in a distributed system — where a single request touches CloudFront, API Gateway, Lambda, and DynamoDB — the error could be anywhere. My primary tool is CloudWatch Logs with **structured JSON logging**:
 
 > **[SCREEN: Open AWS CloudWatch console]**
-
-When a request touches CloudFront, API Gateway, Lambda, and DynamoDB, the error could be anywhere. My primary tool is CloudWatch Logs with **structured JSON logging**:
 
 ```python
 class JsonFormatter(logging.Formatter):
@@ -375,23 +390,13 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(log_data)
 ```
 
-Every log entry is a JSON object with a `request_id` field. When troubleshooting, I search CloudWatch Logs Insights with `filter request_id = "abc-123"` and instantly see every log entry for that request. My systematic approach: check API Gateway logs for the request, then Lambda logs for the error, then CloudWatch metrics for patterns, then CloudTrail if I suspect a configuration change.
+Every log entry is a JSON object with a `request_id` field — a unique ID that Lambda generates for every request. When troubleshooting, I search CloudWatch Logs Insights with `filter request_id = "abc-123"` and instantly see every log entry for that request, in order. My systematic approach: check API Gateway logs for the request, then Lambda logs for the error, then CloudWatch metrics for patterns, then CloudTrail if I suspect a configuration change. This layered approach — starting from the entry point and drilling down — is how you troubleshoot distributed systems.
 
-This layered approach — starting from the entry point and drilling down — is how you troubleshoot distributed systems. The skill is knowing where to look.
+### Monitoring & Custom Metrics — K11, S6 (5 minutes)
 
----
-
-## SECTION 7: OPERABILITY (18 minutes)
-
-> **KSBs: K11, S6, S19, B3**
-
-### Monitoring and Alerting — K11, S6 (7 minutes)
-
-Now, troubleshooting is reactive — something breaks and you investigate. But ideally, I want to know about problems before users report them. That is what monitoring and alerting are for. Let me show you what I have built.
+Troubleshooting is reactive — something breaks and you investigate. But ideally, I want to know about problems before users report them. That is what monitoring is for.
 
 > **[SCREEN: Open CloudWatch Dashboard]**
-
-> **[SCREEN: Show dashboard screenshot]**
 
 > **[SLIDE 13: CloudWatch Dashboard]**
 
@@ -399,7 +404,7 @@ This is my CloudWatch Dashboard with 12 widgets in six rows. The **top two rows*
 
 The **bottom four rows** are my **custom business metrics** — this is where I believe I meet the distinction criteria:
 
-> **[SCREEN: Show custom metrics screenshot]**
+> **[SCREEN: Show custom metrics rows on dashboard]**
 
 - **Questions Retrieved** — early warning if the core feature stops working (drops to zero = DynamoDB down or permissions changed)
 - **Question Views by Category** — product metric telling me where to invest in content
@@ -408,81 +413,77 @@ The **bottom four rows** are my **custom business metrics** — this is where I 
 - **API Latency by Operation** — catches slowdowns affecting a small percentage of users
 - **404 Errors** — tracks dead links from deleted questions
 
-All 12 widgets are defined in `service.ts` — not set up by hand through the AWS console. That means the entire dashboard lives in my code, is tracked in Git, and gets created automatically every time I deploy. If I deleted the dashboard by accident, I would just redeploy and it comes back exactly as it was.
-
+All 12 widgets are defined in `service.ts` — not set up by hand through the console. The entire dashboard lives in my code, is tracked in Git, and gets created automatically every time I deploy.
 
 > **[SCREEN: Show custom_metrics.py]**
 
 These metrics are sent by my `custom_metrics.py` module using `cloudwatch.put_metric_data()`. The key design decision: the metric call is wrapped in a safety net — if CloudWatch fails, I log a warning but do NOT crash the main request. Metrics are not worth breaking the user experience over. In the handler, emitting a metric is a single line: `questions_metrics.questions_retrieved(len(items))`.
 
-### Alerting Configuration (5 minutes)
+### Alerting & Interpretation — S19 (5 minutes)
 
-Now let me show you the alerting configuration.
-
-> **[SCREEN: Show the alarm definitions in service.ts]**
-
-> **[SCREEN: Show alarm screenshot]**
+> **[SCREEN: Show alarm definitions in service.ts]**
 
 > **[SLIDE 14: CloudWatch Alarms]**
 
-I have 8 CloudWatch alarms configured — 4 for standard AWS metrics and 4 for my custom business metrics.
+I have 8 CloudWatch alarms — 4 for standard AWS metrics and 4 for my custom business metrics.
 
 Standard: **Lambda Errors** (≥5 in 5 min), **Lambda Throttles** (≥1, because even one means a user was turned away), **Lambda High Duration** (>5s for two consecutive windows), **API Gateway 5xx** (≥5 in 5 min).
 
 Custom: **High API Latency** (>1s for two windows), **High 404 Rate** (>10 in 5 min — catches deleted questions with stale links), **Unauthorised Admin Access** (>5 failed checks in 5 min — a security alarm), **No Question Activity** (0 retrievals in 10 min — my "is the whole thing dead?" alarm. This one uniquely treats missing data as a problem, unlike the others where no data means nobody is using the app).
 
-All defined in code in `service.ts`, connected to an SNS topic for email notifications.
+How do I act on this data? If **p99 latency** is much higher than average, that usually indicates Lambda **cold starts** — most requests hit warm containers (fast) but some hit cold ones (1-3 seconds). I could fix this with provisioned concurrency at higher cost, but for my current traffic the behaviour is acceptable. If **Question Views by Category** shows 80% AWS questions, I know where to invest in content. If the **unauthorised access alarm** fires, I check CloudWatch Logs immediately to identify the source. These custom metrics go beyond basic health — they drive product and security decisions. That is the distinction criteria.
 
-### Interpreting Metrics — S19 (3 minutes)
-
-How do I act on this data? If **p99 latency** is much higher than average, that usually indicates Lambda **cold starts** — most requests hit warm containers (fast) but some hit cold ones (1-3 seconds). I could fix this with provisioned concurrency at higher cost, but for my current traffic the behaviour is acceptable.
-
-If **Question Views by Category** shows 80% AWS questions, I know where to invest in content. If the **unauthorised access alarm** fires, I check CloudWatch Logs immediately to identify the source. These custom metrics go beyond basic health — they drive product and security decisions. That is the distinction criteria.
-
-### Audit Trail & B3 (3 minutes)
+### Audit Trail & Ownership — B3 (3 minutes)
 
 > **[SLIDE 15: CloudTrail]**
 
 **CloudTrail** is like a security camera for my AWS account — it records every infrastructure action with who, when, what, and from where. I configured it in CDK with a dedicated encrypted S3 bucket (versioned, lifecycle rules, survives stack deletion), a CloudWatch Log Group for searchable access, and file validation to detect tampering. Between CloudWatch (what the application is doing) and CloudTrail (what people are doing to the infrastructure), I have full visibility.
 
-All of this exists because I own this application end to end — **"you build it, you run it."** When you are the person who gets the alert at 2am, you naturally build in structured logs, tuned alarms, automated deployments, and infrastructure as code. Every design decision was shaped by the fact that I have to live with the consequences. That is B3.
-
-
----
-
-## SECTION 8: AUTOMATION (8 minutes)
-
-> **KSBs: K13, K17, S12**
-
-### Scripting and APIs — K13, K17 (4 minutes)
-
-I work with APIs at three levels. **AWS SDK (Boto3):** my Lambda functions call DynamoDB (`table.scan()`, `table.put_item()`) and Bedrock (`bedrock.invoke_model()`). I handle pagination — DynamoDB limits results to 1MB, so my code loops with `LastEvaluatedKey` until all data is read.
-
-**Bedrock API:** The evaluate answer function sends a structured prompt to Claude 3.7 Sonnet with the question, the user's answer, and the expected JSON response format. The response is parsed and returned to the user. If anything fails — bad JSON, Bedrock error — I return a clean 500.
-
-**Frontend REST API:** The TypeScript `fetch` calls attach the JWT token as an Authorization header, check `response.ok`, parse JSON, and throw typed errors on failure — the same pattern for every endpoint.
-
-### Automation for Efficiency — S12 (4 minutes)
-
-Every piece of automation saves real time. **Infrastructure deployment:** `cdk deploy` provisions every AWS resource in ~10 minutes — manually it would take hours. **CI/CD:** every push triggers automated testing and deployment in 6-14 minutes. **Code quality:** linting, formatting, and Trivy scanning run on every commit. **Monitoring:** alarms defined in code, deployed automatically.
-
-For the **distinction criteria** — Dependabot is my example of identifying an additional automation opportunity. I identified that manually checking for dependency updates was inefficient and easy to forget. By configuring Dependabot, I automated the entire detection-to-deployment process, reducing it from a regular manual task to a simple PR review.
+All of this exists because I own this application end to end — **"you build it, you run it."** When you are the person who gets the alert at 2am, you naturally build in structured logs, tuned alarms, automated deployments, and infrastructure as code. Every design decision was shaped by the fact that I have to live with the consequences. That is B3 — and it is also why my Mean Time To Recovery is low. If something breaks, my structured logs tell me what went wrong, my alarms tell me where, and my CI/CD pipeline lets me deploy a fix in minutes.
 
 ---
 
-## SECTION 9: SUMMARY AND Q&A (10 minutes)
+## SECTION 8: NEXT STEPS & SUMMARY (10 minutes)
 
-### Summary (3 minutes)
+### Next Steps (4 minutes)
+
+If I were to continue developing SkillScout, there are four areas I would focus on.
+
+First, **question history and progress tracking**. Right now, users practise and get feedback, but there is no record of their past attempts. I would add a DynamoDB table to store evaluation history per user, so candidates can see their scores improving over time and identify which categories they are weakest in.
+
+Second, **more granular AI evaluation metrics**. I would track not just "how many evaluations happened" but "what was the average score by category" and "how long did Bedrock take to respond." This would let me identify whether certain types of questions produce better AI feedback than others.
+
+Third, **canary deployments**. Currently, my production deployment is all-or-nothing — the new version replaces the old one for every user simultaneously. With canary deployments, I would route a small percentage of traffic to the new version first, monitor the error rate and latency, and only roll out to everyone if the metrics look healthy. AWS supports this through Lambda aliases and weighted routing.
+
+Fourth, **multi-region deployment**. SkillScout currently runs in eu-west-1 only. For global users, I would deploy the backend to additional regions and use Route 53 latency-based routing to direct each user to the nearest region. The frontend is already global through CloudFront.
+
+### Summary (4 minutes)
 
 > **[SLIDE 17: Summary]**
 
-I have shown you a complete, production-ready application. **Code Quality:** Git, Python, TypeScript, CDK, 58 tests, STRIDE threat model, PDAC problem solving. **User Needs:** 14 user stories with MoSCoW, Kanban tracking, architecture patterns. **CI/CD:** live demo of a commit flowing to production with automated quality gates. **Refreshing:** immutable infrastructure, Dependabot. **Data:** DynamoDB selection rationale, structured JSON logging. **Operability:** 12-widget dashboard, 8 alarms, custom metrics driving decisions. **Automation:** Boto3, Bedrock, REST APIs, Dependabot as additional automation. **Security:** encryption in transit and at rest, multi-layered access control.
+Let me summarise what I have demonstrated today.
 
-### Closing (1 minute)
+**User Needs:** 14 user stories across four personas with MoSCoW prioritisation, Kanban tracking, and every Must Have and Should Have fully implemented.
+
+**The Codebase:** Python and TypeScript, distributed source control with Git, conventional commits, infrastructure as code with CDK, and APIs at every level — Boto3, Bedrock, and REST.
+
+**CI/CD:** A fully automated pipeline with quality gates at every stage. You watched a live code commit flow from my laptop to production with linting, testing, vulnerability scanning, and manual approval.
+
+**Security:** A comprehensive STRIDE threat model with 17 threats, all mitigated. Encryption in transit via HTTPS and at rest using AWS-managed keys. Trivy and Dependabot for vulnerability scanning.
+
+**Testing:** 58 tests following the test pyramid — unit tests with mocking, CDK infrastructure tests, and integration tests. All running automatically in the pipeline.
+
+**Observability:** A 12-widget CloudWatch dashboard with 6 custom business metrics, 8 alarms, structured JSON logging, and CloudTrail audit trails.
+
+### Closing (2 minutes)
 
 > **[SLIDE 18: Thank You]**
 
-Building SkillScout has given me the opportunity to work with a wide range of AWS services and understand the full lifecycle of a software product. Thank you for your time — I am happy to answer any questions.
+Building SkillScout has been a genuinely rewarding experience. It has given me the opportunity to work with a wide range of AWS services and understand the full lifecycle of a software product — from user story to production deployment, monitoring, and maintenance.
+
+The most important thing I have learned is that quality is not a phase — it is built into every step. Good tests catch bugs before they ship. Good monitoring catches problems before users report them. Good automation removes the chance of human error. And good security is designed in from the start, not added at the end.
+
+Thank you for your time. I am happy to answer any questions.
 
 ---
 
@@ -491,36 +492,35 @@ Building SkillScout has given me the opportunity to work with a wide range of AW
 | KSB | Where I Evidence It | Key Files/Resources |
 |-----|-------------------|-------------------|
 | K1 | CI/CD section — frequent merging, automated builds | GitHub Actions workflows |
-| K2 | Code Quality section — Git branching, conventional commits | Git history, .flake8, eslint.config.js |
+| K2 | Codebase section — Git branching, conventional commits | Git history, .flake8, eslint.config.js |
 | K4 | Meeting User Needs — Time/Cost/Quality value | Serverless architecture, CI/CD pipeline |
-| K5 | Code Quality — Trivy, threat model, Dependabot | THREAT_MODEL.md, workflow files |
-| K7 | Code Quality — Python + TypeScript codebases | questions_handler.py, service.ts |
-| K8 | Refreshing — CDK immutable infrastructure | service.ts, CloudFormation templates |
+| K5 | Security — Trivy, threat model, Dependabot | THREAT_MODEL.md, workflow files |
+| K7 | Codebase — Python + TypeScript codebases | questions_handler.py, service.ts |
+| K8 | CI/CD — CDK immutable infrastructure | service.ts, CloudFormation templates |
 | K10 | Meeting User Needs — UX feedback driving features | USER_STORIES.md, CSS fix examples |
-| K11 | Operability — CloudWatch dashboard, alarms | service.ts alarm definitions |
-| K12 | Data Persistence — DynamoDB selection rationale | service.ts DynamoDB definition |
-| K13 | Automation — scripting, Boto3 SDK usage | Lambda functions, CDK code |
-| K14 | Code Quality — test pyramid, mocks | test_admin_authorization.py |
+| K11 | Observability — CloudWatch dashboard, alarms | service.ts alarm definitions |
+| K12 | Observability — DynamoDB selection rationale | service.ts DynamoDB definition |
+| K13 | Codebase — scripting, Boto3 SDK usage | Lambda functions, CDK code |
+| K14 | Testing — test pyramid, mocks | test_admin_authorization.py |
 | K15 | CI/CD — CI vs CD vs CD definitions | Pipeline workflows |
-| K16 | Data Security — HTTPS, encryption at rest, IAM | service.ts, THREAT_MODEL.md |
-| K17 | Automation — Boto3 API usage, documentation | evaluate_answer.py, api.ts |
+| K16 | Security — HTTPS, encryption at rest, IAM | service.ts, THREAT_MODEL.md |
+| K17 | Codebase — Boto3 API usage, REST API | evaluate_answer.py, api.ts |
 | K21 | Meeting User Needs — serverless microservice pattern | ARCHITECTURE.md, service.ts |
 | S3 | Meeting User Needs — user stories | USER_STORIES.md |
-| S5 | Refreshing — CDK deployments | Pipeline + CDK code |
-| S6 | Operability — CloudWatch setup via CDK | service.ts monitoring section |
-| S7 | Data Persistence — CloudWatch Logs troubleshooting | Log examples |
-| S9 | Code Quality — Trivy in pipeline, threat model | Workflow files, THREAT_MODEL.md |
-| S10 | Data Security — likelihood/impact assessment | THREAT_MODEL.md |
-| S11 | Code Quality — PDAC methodology | CSS bug fix example |
-| S12 | Automation — Dependabot, CI/CD, IaC | dependabot.yml, workflows |
-| S14 | Code Quality — pytest, Jest CDK tests | All test files |
+| S5 | CI/CD — CDK deployments, Dependabot | Pipeline + CDK code |
+| S6 | Observability — CloudWatch setup via CDK | service.ts monitoring section |
+| S7 | Observability — CloudWatch Logs troubleshooting | Log examples |
+| S9 | Security — Trivy in pipeline, threat model | Workflow files, THREAT_MODEL.md |
+| S10 | Security — likelihood/impact assessment | THREAT_MODEL.md |
+| S11 | Codebase — PDAC methodology | CSS bug fix example |
+| S12 | CI/CD — Dependabot, automation efficiency | dependabot.yml, workflows |
+| S14 | Testing — pytest, Jest CDK tests | All test files |
 | S15 | CI/CD — live demo | GitHub Actions |
-| S17 | Code Quality — Python + TypeScript | Lambda functions, frontend |
-| S18 | Code Quality — AWS CDK TypeScript | infrastructure/lib/stacks/service.ts |
-| S19 | Operability — metric interpretation | Dashboard walkthrough |
-| S20 | Code Quality — small commits, linting | Git history, .flake8 |
-| S22 | Code Quality — incremental CSS refactoring | Recent commit history |
-| B3 | Operability — ownership, accountability | Monitoring, alerting, logging |
+| S17 | Codebase — Python + TypeScript | Lambda functions, frontend |
+| S18 | Codebase — AWS CDK TypeScript | infrastructure/lib/stacks/service.ts |
+| S19 | Observability — metric interpretation | Dashboard walkthrough |
+| S20 | Codebase — small commits, linting | Git history, .flake8 |
+| B3 | Observability — ownership, accountability, MTTR | Monitoring, alerting, logging |
 
 ---
 
@@ -528,7 +528,7 @@ Building SkillScout has given me the opportunity to work with a wide range of AW
 
 | Category | Distinction Criteria | How I Meet It |
 |----------|---------------------|--------------|
-| Meeting User Needs | "Should have" user needs met | Admin category dropdown, CSS improvements from user feedback |
+| Meeting User Needs | "Should have" user needs met | All 5 Should Have stories implemented and tested |
 | Refreshing & Patching | Fully automates refreshing/patching | Dependabot + CI/CD pipeline for dependency updates |
-| Operability | Custom metrics with improvement areas | 4 custom business metrics with dashboard visualisation |
+| Operability | Custom metrics with improvement areas | 6 custom business metrics with dashboard visualisation |
 | Automation | Additional automation reducing effort | Dependabot automated dependency scanning and PR creation |
